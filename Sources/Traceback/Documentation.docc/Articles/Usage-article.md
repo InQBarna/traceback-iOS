@@ -2,11 +2,18 @@
 
 ## Installation
 
-1. Install the firebase extension into your firebase project
-2. Install using SPM with the url
+Install the firebase extension into your firebase project. TODO: link
 
+In your iOS app:
+
+1. Install this companion sdk using SPM
 ```swift
 https://github.com/InQBarna/firebase-backtrace-extension
+```
+2. In the Info tab of your app's Xcode project, create a new URL type to be used for Traceback. Set the Identifier field to a unique value and the URL scheme field to be your bundle identifier.
+3. In the Capabilities tab of your app's Xcode project, enable Associated Domains and add the following to the Associated Domains list:
+```
+applinks:your_dynamic_links_domain
 ```
 
 ## Usage
