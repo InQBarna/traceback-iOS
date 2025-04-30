@@ -69,13 +69,20 @@ final class TracebackSDKImpl {
             UserDefaults.standard.set(true, forKey: userDefaultsExistingRunKey)
             logger.info("Post-install success saved to user defaults \(userDefaultsExistingRunKey)" +
                         " so it is no longer checked")
-
-            return TracebackSDK.Result(
-                url: response.deep_link_id,
-                analytics: [
-                    .postInstallDetected(response.deep_link_id)
-                ]
-            )
+            
+            if let deep_link_id = response.deep_link_id {
+                return TracebackSDK.Result(
+                    url: response.deep_link_id,
+                    analytics: [
+                        .postInstallDetected(deep_link_id)
+                    ]
+                )
+            } else {
+                return TracebackSDK.Result(
+                    url: response.deep_link_id,
+                    analytics: []
+                )
+            }
         } catch {
             logger.error("Failed to detect post-install link: \(error.localizedDescription)")
             return TracebackSDK.Result(
