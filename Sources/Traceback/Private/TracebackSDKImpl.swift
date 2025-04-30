@@ -58,7 +58,7 @@ final class TracebackSDKImpl {
             // 4. Send fingerprint to backend
             let api = APIProvider(
                 config: NetworkConfiguration(
-                    domain: config.mainAssociatedDomain
+                    host: config.mainAssociatedHost
                 ),
                 network: Network.live
             )

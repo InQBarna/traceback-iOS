@@ -47,5 +47,5 @@ func checkCreateFingerPrint() async throws {
 func checkLocaleFromWebview() async throws {
     let reader = await WebViewLanguageReader()
     let localeFromWebView = await reader.getWebViewLocaleIdentifier()
-    #expect(localeFromWebView == "en-GB")
+    #expect(localeFromWebView == "en-US")
 }

@@ -18,12 +18,11 @@ struct APIProvider: Sendable {
     }
 
     func sendFingerprint(_ fingerprint: DeviceFingerprint) async throws -> PostInstallLinkSearchResponse {
-        guard let url = URL(string: "https://\(config.domain)/v1_postinstall_search_link") else {
-            throw TracebackError.internalSDK
-        }
-        
-        // https://europe-west1-iqbdemocms.cloudfunctions.net/ext-firebase-traceback-v1_postinstall_search_link
+        // guard let url = URL(string: "https://\(config.domain)/v1_postinstall_search_link") else {
+        // throw TracebackError.internalSDK
+        // }
 
+        let url = config.host.appendingPathComponent("v1_postinstall_search_link", isDirectory: false)
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

@@ -30,10 +30,10 @@ public struct TracebackConfiguration: Sendable {
     }
     
     /// The main associated domain created by traceback firebase extension
-    public let mainAssociatedDomain: String
+    public let mainAssociatedHost: URL
     /// List of other domains associated to this app that are configured using Traceback.
     /// Usually the host created by the firebase traceback extension
-    public let associatedDomains: [String]?
+    public let associatedHosts: [URL]?
     /// Configure the sdk to use the clipboard. This is the recommended setup, it's the only configuration
     /// that allows unique installation/link matches
     public let useClipboard: Bool
@@ -43,15 +43,15 @@ public struct TracebackConfiguration: Sendable {
     let network: NetworkConfiguration
     
     public init(
-        mainAssociatedDomain: String,
-        associatedDomains: [String]? = nil,
+        mainAssociatedHost: URL,
+        associatedHosts: [URL]? = nil,
         useClipboard: Bool = false,
         logLevel: LogLevel = .info
     ) {
-        self.mainAssociatedDomain = mainAssociatedDomain
-        self.associatedDomains = associatedDomains
+        self.mainAssociatedHost = mainAssociatedHost
+        self.associatedHosts = associatedHosts
         self.useClipboard = useClipboard
         self.logLevel = logLevel
-        self.network = NetworkConfiguration(domain: mainAssociatedDomain)
+        self.network = NetworkConfiguration(host: mainAssociatedHost)
     }
 }

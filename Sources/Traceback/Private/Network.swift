@@ -8,10 +8,10 @@
 import Foundation
 
 struct NetworkConfiguration: Sendable {
-    let domain: String
+    let host: URL
 
-    init(domain: String) {
-        self.domain = domain
+    init(host: URL) {
+        self.host = host
     }
 }
 
