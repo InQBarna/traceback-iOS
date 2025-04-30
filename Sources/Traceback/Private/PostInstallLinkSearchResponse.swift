@@ -8,7 +8,7 @@
 import Foundation
 
 struct PostInstallLinkSearchResponse: Decodable, Equatable, Sendable {
-    let deep_link_id: URL
+    let deep_link_id: URL?
     let match_message: String
     let match_type: String
     let request_ip_version: String
