@@ -25,7 +25,7 @@ final class TracebackSDKImpl {
         self.logger = logger
     }
 
-    func detectPostInstallLink() async -> TracebackSDK.Result {
+    func detectPostInstallLink(darkLaunchDetectedLink: URL?) async -> TracebackSDK.Result {
         logger.info("Checking for previous post-install link successes")
         
         guard !UserDefaults.standard.bool(forKey: userDefaultsExistingRunKey) else {
@@ -50,7 +50,8 @@ final class TracebackSDKImpl {
             let fingerprint = await createDeviceFingerprint(
                 system: system,
                 linkFromClipboard: linkFromClipboard,
-                languageFromWebView: languageFromWebView
+                languageFromWebView: languageFromWebView,
+                darkLaunchDetectedLink: darkLaunchDetectedLink
             )
 
             logger.debug("Generated fingerprint: \(fingerprint)")
@@ -63,7 +64,7 @@ final class TracebackSDKImpl {
                 network: Network.live
             )
 
-            let response = try await api.sendFingerprint(fingerprint)
+            let response = try await api.sendFingerprint(fingerprint, darkLaunchDetectedLink: darkLaunchDetectedLink)
             logger.info("Server responded with match type: \(response.match_type)")
             
             UserDefaults.standard.set(true, forKey: userDefaultsExistingRunKey)

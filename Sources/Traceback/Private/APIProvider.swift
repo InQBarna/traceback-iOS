@@ -17,10 +17,10 @@ struct APIProvider: Sendable {
         self.network = network
     }
 
-    func sendFingerprint(_ fingerprint: DeviceFingerprint) async throws -> PostInstallLinkSearchResponse {
-        // guard let url = URL(string: "https://\(config.domain)/v1_postinstall_search_link") else {
-        // throw TracebackError.internalSDK
-        // }
+    func sendFingerprint(
+        _ fingerprint: DeviceFingerprint,
+        darkLaunchDetectedLink: URL?
+    ) async throws -> PostInstallLinkSearchResponse {
 
         let url = config.host.appendingPathComponent("v1_postinstall_search_link", isDirectory: false)
         var request = URLRequest(url: url)

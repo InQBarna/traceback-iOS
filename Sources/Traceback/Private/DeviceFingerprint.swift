@@ -16,6 +16,7 @@ struct DeviceFingerprint: Codable, Equatable, Sendable {
     let sdkVersion: String
     let uniqueMatchLinkToCheck: URL?
     let device: DeviceInfo
+    let darkLaunchDetectedLink: URL?
 
     struct DeviceInfo: Codable, Equatable, Sendable {
         let deviceModelName: String
@@ -32,7 +33,8 @@ struct DeviceFingerprint: Codable, Equatable, Sendable {
 func createDeviceFingerprint(
     system: SystemInfo,
     linkFromClipboard: URL?,
-    languageFromWebView: String?
+    languageFromWebView: String?,
+    darkLaunchDetectedLink: URL?
 ) -> DeviceFingerprint {
     
     let isCompatibilityMode =
@@ -63,6 +65,7 @@ func createDeviceFingerprint(
         osVersion: system.osVersion,
         sdkVersion: system.sdkVersion,
         uniqueMatchLinkToCheck: linkFromClipboard,
-        device: deviceInfo
+        device: deviceInfo,
+        darkLaunchDetectedLink: darkLaunchDetectedLink
     )
 }

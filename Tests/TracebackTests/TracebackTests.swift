@@ -20,7 +20,8 @@ func checkCreateFingerPrint() async throws {
     let createdFingerPrint = await createDeviceFingerprint(
         system: system,
         linkFromClipboard: link,
-        languageFromWebView: localeFromWebView
+        languageFromWebView: localeFromWebView,
+        darkLaunchDetectedLink: nil
     )
     let expectedFingerprint = await DeviceFingerprint(
         appInstallationTime: system.installationTime,
@@ -36,7 +37,8 @@ func checkCreateFingerPrint() async throws {
             screenResolutionWidth: Int(UIScreen.main.bounds.width),
             screenResolutionHeight: Int(UIScreen.main.bounds.height),
             timezone: "Europe/Madrid"
-        )
+        ),
+        darkLaunchDetectedLink: nil
     )
     #expect(
         createdFingerPrint == expectedFingerprint
