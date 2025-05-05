@@ -47,6 +47,11 @@ public struct DarkLaunchInfo {
     let darkLaunchDetectedLink: URL?
     /// Inclides the pasteboard, to be grabbed before firebase dynamic links, sice firebase dynamic links clears the clipboard
     let previouslyGrabbedClipboard: URL?
+    
+    public init(darkLaunchDetectedLink: URL?, previouslyGrabbedClipboard: URL?) {
+        self.darkLaunchDetectedLink = darkLaunchDetectedLink
+        self.previouslyGrabbedClipboard = previouslyGrabbedClipboard
+    }
 }
 
 
