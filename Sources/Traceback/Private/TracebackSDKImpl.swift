@@ -25,7 +25,7 @@ final class TracebackSDKImpl {
         self.logger = logger
     }
 
-    func detectPostInstallLink(darkLaunchDetectedLink: URL?) async -> TracebackSDK.Result {
+    func detectPostInstallLink(darkLaunchInfo: DarkLaunchInfo? = nil) async -> TracebackSDK.Result {
         logger.info("Checking for previous post-install link successes")
         
         guard !UserDefaults.standard.bool(forKey: userDefaultsExistingRunKey) else {
@@ -42,7 +42,13 @@ final class TracebackSDKImpl {
             logger.debug("WebView language: \(languageFromWebView ?? "nil")")
 
             // 2. Try to read a link from clipboard
-            let linkFromClipboard = config.useClipboard ? UIPasteboard.general.url : nil
+            let linkFromClipboard: URL?
+            if config.useClipboard {
+                linkFromClipboard = darkLaunchInfo?.previouslyGrabbedClipboard ?? UIPasteboard.general.url
+                UIPasteboard.general.string = ""
+            } else {
+                linkFromClipboard = nil
+            }
             logger.debug("Link from clipboard: \(linkFromClipboard?.absoluteString ?? "none")")
 
             // 3. Generate fingerprint
@@ -51,7 +57,7 @@ final class TracebackSDKImpl {
                 system: system,
                 linkFromClipboard: linkFromClipboard,
                 languageFromWebView: languageFromWebView,
-                darkLaunchDetectedLink: darkLaunchDetectedLink
+                darkLaunchDetectedLink: darkLaunchInfo?.darkLaunchDetectedLink
             )
 
             logger.debug("Generated fingerprint: \(fingerprint)")
@@ -64,7 +70,7 @@ final class TracebackSDKImpl {
                 network: Network.live
             )
 
-            let response = try await api.sendFingerprint(fingerprint, darkLaunchDetectedLink: darkLaunchDetectedLink)
+            let response = try await api.sendFingerprint(fingerprint, darkLaunchDetectedLink: darkLaunchInfo?.darkLaunchDetectedLink)
             logger.info("Server responded with match type: \(response.match_type)")
             
             UserDefaults.standard.set(true, forKey: userDefaultsExistingRunKey)
