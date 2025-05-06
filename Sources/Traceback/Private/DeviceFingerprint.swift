@@ -44,7 +44,7 @@ func createDeviceFingerprint(
     let screenWidth = isCompatibilityMode ? 0 : Int(screenSize.width)
     let screenHeight = isCompatibilityMode ? 0 : Int(screenSize.height)
     
-    let rawLocale = system.locale.identifier
+    let rawLocale = system.localeIdentifier
     let normalizedLocale = rawLocale
         .replacingOccurrences(of: "_", with: "-")
         .replacingOccurrences(of: "-001", with: "")

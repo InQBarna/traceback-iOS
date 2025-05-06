@@ -12,7 +12,7 @@ struct SystemInfo {
     let installationTime: TimeInterval
     let deviceModelName: String
     let sdkVersion: String
-    let locale: Locale
+    let localeIdentifier: String
     let timezone: TimeZone
     let osVersion: String
     let bundleId: String
@@ -25,7 +25,7 @@ enum TracebackSystemImpl {
             installationTime: installationTime(),
             deviceModelName: deviceModelName(),
             sdkVersion: sdkVersion(),
-            locale: Locale.current,
+            localeIdentifier: Locale.preferredLanguages.first ?? Locale.current.identifier,
             timezone: TimeZone.current,
             osVersion: UIDevice.current.systemVersion,
             bundleId: Bundle.main.bundleIdentifier ?? "unknown"
