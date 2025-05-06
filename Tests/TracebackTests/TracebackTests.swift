@@ -12,7 +12,7 @@ func checkCreateFingerPrint() async throws {
         installationTime: TimeInterval(0),
         deviceModelName: "myIphone",
         sdkVersion: "1.0.0",
-        locale: Locale(identifier: "es_ES"),
+        localeIdentifier: "es_ES",
         timezone: TimeZone(identifier: "Europe/Madrid")!,
         osVersion: "18.0.0",
         bundleId: "com.inqbarna.familymealplanner"
@@ -49,5 +49,5 @@ func checkCreateFingerPrint() async throws {
 func checkLocaleFromWebview() async throws {
     let reader = await WebViewLanguageReader()
     let localeFromWebView = await reader.getWebViewLocaleIdentifier()
-    #expect(localeFromWebView == "en-US")
+    #expect(localeFromWebView == Locale.current.identifier)
 }

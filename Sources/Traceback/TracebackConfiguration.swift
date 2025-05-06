@@ -45,7 +45,7 @@ public struct TracebackConfiguration: Sendable {
     public init(
         mainAssociatedHost: URL,
         associatedHosts: [URL]? = nil,
-        useClipboard: Bool = false,
+        useClipboard: Bool = true,
         logLevel: LogLevel = .info
     ) {
         self.mainAssociatedHost = mainAssociatedHost
