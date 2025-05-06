@@ -5,9 +5,11 @@ firebase dynamic links performance. In the following example we will launch both
 firebase dynamic links and Traceback, final decision will be based on firebase dynamic
 links.
 
+## SwiftUI
+
 ### Setup
 
-1.- Disable firebase automatic launch by setting `FirebaseDeepLinkAutomaticRetrievalEnabled` to `false` in your plist.
+1.- In order to launch firebase dynamic link resolution exactly when desired, disable firebase automatic launch by setting `FirebaseDeepLinkAutomaticRetrievalEnabled` to `false` in your plist.
 
 2.- Then, the firebase dynamic link resolution is disabled, see how to launch it manually
 
@@ -44,26 +46,24 @@ final class PreLandingViewModel: ObservableObject {
     ) {
         let darkLaunchFirebaseDL = DynamicLinks.dynamicLinks().dynamicLink(fromCustomSchemeURL: url)?.url
         Task {
-            // 1.- Trigger a search for installation links
-            //  in case a no-traceback link is found, it is returned as tracebackURL
-            guard let tracebackURL = traceback.postInstallSearchLink(darkLaunchFirebaseDL) else {
+            // 2.- Search for post-install link and proceed if available
+            let darkLaunchInfo = DarkLaunchInfo {
+                darkLaunchDetectedLink: darkLaunchFirebaseDL,
+                previouslyGrabbedClipboard: viewModel.grabbedClipboardURL
+            }
+            guard let tracebackURL = traceback.postInstallSearchLink(darkLaunchFirebaseDL)?.url else {
                 return
             }
             
-            // 2.- Optional:  Send the right analytics in linkResult.analyticsEvents (optional).
-            //  Both success and failure analytics are returned for reporting
-            ANALYTICS
-    
-            // 3.- Grab any valid url and proceed to decode + opening the content
-            // In dark launch mode, we recommend using firebase result 
-            //  and traceback's result for comparison and debug only
-            guard let linkURL = darkLaunchFirebaseDL ?? tracebackURL else {
-                return
+            // 3.- Grab the correct url
+            //  URL is either a post-install link (detected after app download on onAppear),
+            //  or an opened url (direct open in installed app)
+            guard let linkResult = try? traceback.extractLinkFromURL(url) else {
+                return assertionFailure("Could not find a valid traceback/universal url in \(url)")
             }
             
             // 4.- Handle the url, opening the right content indicated by linkURL
             YOUR CODE HERE
-
         }
     }
 }
@@ -73,10 +73,12 @@ struct PreLandingView: View {
     var body: some View {
         /* ... */
         .onAppear {
+            // 1.- Launch firebase resolution
             viewModel.launchFirebaseDynamicLinksResolution()
         }
         .onOpenURL { url in
-            // Receive here the resolution (or normal universal link of course)
+            // Receive here the resolution of firebase dyn links
+            //  or normal universal link of course
             viewModel.proceed(onOpenURL: url)
         }
     }
