@@ -12,7 +12,7 @@ private let userDefaultsExistingRunKey = "traceback_existingRun"
 
 extension TracebackSDK.Result {
     static var empty: Self {
-        TracebackSDK.Result(url: nil, analytics: [])
+        TracebackSDK.Result(url: nil, match_type: .none, analytics: [])
     }
 }
 
@@ -80,6 +80,7 @@ final class TracebackSDKImpl {
             if let deep_link_id = response.deep_link_id {
                 return TracebackSDK.Result(
                     url: response.deep_link_id,
+                    match_type: response.matchType,
                     analytics: [
                         .postInstallDetected(deep_link_id)
                     ]
@@ -87,6 +88,7 @@ final class TracebackSDKImpl {
             } else {
                 return TracebackSDK.Result(
                     url: response.deep_link_id,
+                    match_type: response.matchType,
                     analytics: []
                 )
             }
@@ -94,6 +96,7 @@ final class TracebackSDKImpl {
             logger.error("Failed to detect post-install link: \(error.localizedDescription)")
             return TracebackSDK.Result(
                 url: nil,
+                match_type: .none,
                 analytics: [
                     .postInstallError(error)
                 ]
@@ -113,12 +116,14 @@ final class TracebackSDKImpl {
                let url = URL(string: value) {
                 return TracebackSDK.Result(
                     url: url,
+                    match_type: .unknown,
                     analytics: []
                 )
             }
         }
         return TracebackSDK.Result(
             url: nil,
+            match_type: .unknown,
             analytics: []
         )
     }

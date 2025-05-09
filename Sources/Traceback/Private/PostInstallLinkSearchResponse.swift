@@ -15,3 +15,18 @@ struct PostInstallLinkSearchResponse: Decodable, Equatable, Sendable {
     let utm_medium: String?
     let utm_source: String?
 }
+
+extension PostInstallLinkSearchResponse {
+    var matchType: TracebackSDK.MatchType {
+        switch match_type {
+        case "unique":
+            return .unique
+        case "none":
+            return .none
+        case "ambiguous":
+            return .default
+        default:
+            return .unknown
+        }
+    }
+}

@@ -30,11 +30,23 @@ public struct TracebackSDK {
     ///
     /// @Discussion Call this method at app startup to diagnose your current setup
     public let performDiagnostics: () -> Void
+    
+    ///
+    /// Match type when searching for a post-install link
+    ///
+    public enum MatchType {
+        case unique         /// A unique result returned, given by pasteboard
+        case `default`      /// Heuristics search success
+        case none           /// No match found
+        case unknown        /// Not determined match type
+    }
 
     /// Result of traceback main methods. Contains the resulting URL and events so analytics can be saved
     public struct Result {
         /// A valid url if the method correctly finds a post install link, or opened url contains a valid deep link
         public let url: URL?
+        /// The match type when extracting the post install
+        public let match_type: MatchType
         /// Analytics to be sent to your preferred analytics platform
         public let analytics: [TracebackAnalyticsEvent]
     }
