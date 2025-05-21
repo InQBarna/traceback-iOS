@@ -55,9 +55,9 @@ public struct TracebackSDK {
 /// Info necessary to grab dark launch analytics
 ///
 public struct DarkLaunchInfo {
-    /// Inclides the firebase dynamic links resolution. To be compared to traceback resolution
+    /// Includes the firebase dynamic links resolution. To be compared to traceback resolution for remote diagnostics.
     let darkLaunchDetectedLink: URL?
-    /// Inclides the pasteboard, to be grabbed before firebase dynamic links, sice firebase dynamic links clears the clipboard
+    /// Includes the pasteboard, to be grabbed before firebase dynamic links, since firebase dynamic links clears the clipboard.
     let previouslyGrabbedClipboard: URL?
     
     public init(darkLaunchDetectedLink: URL?, previouslyGrabbedClipboard: URL?) {

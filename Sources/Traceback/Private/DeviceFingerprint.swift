@@ -23,6 +23,7 @@ struct DeviceFingerprint: Codable, Equatable, Sendable {
         let languageCode: String         // e.g. "es-ES"
         let languageCodeFromWebView: String? // optional, from JS context
         let languageCodeRaw: String      // e.g. "es_ES"
+        let appVersionFromWebView: String? // optional, from JS context
         let screenResolutionWidth: Int
         let screenResolutionHeight: Int
         let timezone: String             // e.g. "Europe/Madrid"
@@ -33,7 +34,7 @@ struct DeviceFingerprint: Codable, Equatable, Sendable {
 func createDeviceFingerprint(
     system: SystemInfo,
     linkFromClipboard: URL?,
-    languageFromWebView: String?,
+    webviewInfo: WebViewNavigatorReader.Navigator?,
     darkLaunchDetectedLink: URL?
 ) -> DeviceFingerprint {
     
@@ -52,8 +53,9 @@ func createDeviceFingerprint(
     let deviceInfo = DeviceFingerprint.DeviceInfo(
         deviceModelName: system.deviceModelName,
         languageCode: normalizedLocale,
-        languageCodeFromWebView: languageFromWebView,
+        languageCodeFromWebView: webviewInfo?.language,
         languageCodeRaw: rawLocale,
+        appVersionFromWebView: webviewInfo?.appVersion,
         screenResolutionWidth: Int(screenWidth),
         screenResolutionHeight: Int(screenHeight),
         timezone: system.timezone.identifier

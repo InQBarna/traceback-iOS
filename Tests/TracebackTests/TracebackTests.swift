@@ -8,6 +8,7 @@ func checkCreateFingerPrint() async throws {
     
     let link = URL(string: "https://example.com/test-link")!
     let localeFromWebView = "es-ES"
+    let appVersionFromWebView = "es-ES"
     let system = SystemInfo(
         installationTime: TimeInterval(0),
         deviceModelName: "myIphone",
@@ -20,7 +21,10 @@ func checkCreateFingerPrint() async throws {
     let createdFingerPrint = await createDeviceFingerprint(
         system: system,
         linkFromClipboard: link,
-        languageFromWebView: localeFromWebView,
+        webviewInfo: WebViewNavigatorReader.Navigator(
+            language: localeFromWebView,
+            appVersion: appVersionFromWebView
+        ),
         darkLaunchDetectedLink: nil
     )
     let expectedFingerprint = await DeviceFingerprint(
@@ -34,6 +38,7 @@ func checkCreateFingerPrint() async throws {
             languageCode: "es-ES",
             languageCodeFromWebView: localeFromWebView,
             languageCodeRaw: "es_ES",
+            appVersionFromWebView: "es-ES",
             screenResolutionWidth: Int(UIScreen.main.bounds.width),
             screenResolutionHeight: Int(UIScreen.main.bounds.height),
             timezone: "Europe/Madrid"
@@ -47,7 +52,7 @@ func checkCreateFingerPrint() async throws {
 
 @Test
 func checkLocaleFromWebview() async throws {
-    let reader = await WebViewLanguageReader()
-    let localeFromWebView = await reader.getWebViewLocaleIdentifier()
-    #expect(localeFromWebView == Locale.current.identifier)
+    let reader = await WebViewNavigatorReader()
+    let localeFromWebView = await reader.getWebViewInfo()
+    #expect(localeFromWebView?.language == Locale.current.identifier)
 }

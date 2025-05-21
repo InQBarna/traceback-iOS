@@ -43,6 +43,13 @@ enum TracebackSystemImpl {
     }
 
     private static func deviceModelName() -> String {
+#if targetEnvironment(simulator)
+        // In the simulator — optionally include simulated device type from environment
+        if let simModel = ProcessInfo().environment["SIMULATOR_MODEL_IDENTIFIER"] {
+            return simModel // e.g., "iPhone15,5"
+        }
+        return "Simulator"
+#else
         var systemInfo = utsname()
         uname(&systemInfo)
         let mirror = Mirror(reflecting: systemInfo.machine)
@@ -50,6 +57,7 @@ enum TracebackSystemImpl {
             guard let value = element.value as? Int8, value != 0 else { return acc }
             return acc + String(UnicodeScalar(UInt8(value)))
         }
+#endif
     }
     
     private static func sdkVersion() -> String {

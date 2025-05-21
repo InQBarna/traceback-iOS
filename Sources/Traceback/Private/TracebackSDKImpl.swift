@@ -38,8 +38,9 @@ final class TracebackSDKImpl {
 
         do {
             // 1. Try to get a languageCode from WebView
-            let languageFromWebView = await WebViewLanguageReader().getWebViewLocaleIdentifier()
-            logger.debug("WebView language: \(languageFromWebView ?? "nil")")
+            let webviewInfo = await WebViewNavigatorReader().getWebViewInfo()
+            logger.debug("WebView language: \(webviewInfo?.language ?? "nil")")
+            logger.debug("WebView appVersion: \(webviewInfo?.appVersion ?? "nil")")
 
             // 2. Try to read a link from clipboard
             let linkFromClipboard: URL?
@@ -56,7 +57,7 @@ final class TracebackSDKImpl {
             let fingerprint = await createDeviceFingerprint(
                 system: system,
                 linkFromClipboard: linkFromClipboard,
-                languageFromWebView: languageFromWebView,
+                webviewInfo: webviewInfo,
                 darkLaunchDetectedLink: darkLaunchInfo?.darkLaunchDetectedLink
             )
 
