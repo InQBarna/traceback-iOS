@@ -2,13 +2,13 @@
 
 ## Installation
 
-Install the firebase extension into your firebase project. TODO: link
+Install the firebase extension into your firebase project: https://github.com/InQBarna/firebase-traceback-extension
 
 In your iOS app:
 
 1. Install this companion sdk using SPM
 ```swift
-https://github.com/InQBarna/firebase-backtrace-extension
+https://github.com/InQBarna/traceback-iOS
 ```
 2. In the Info tab of your app's Xcode project, create a new URL type to be used for Traceback. Set the Identifier field to a unique value and the URL scheme field to be your bundle identifier.
 3. In the Capabilities tab of your app's Xcode project, enable Associated Domains and add the following to the Associated Domains list:
@@ -24,13 +24,11 @@ Create your configuration and grab the sdk tool instance
 import Traceback
 
 let config = TracebackConfiguration(
-    associatedDomains: ["my-firebase-project-traceback.firebaseapp.com"],
-    firebaseProjectId: "my-firebase-project",
-    region: "us-central1"
+    mainAssociatedHost: URL(string: "https://my-firebase-project-traceback.firebaseapp.com")!,
     useClipboard: true,
     logLevel: .error
 )
-let traceback = Traceback.live(configuration: config)
+let traceback = TracebackSDK.live(config: config)
 ```
 
 ### SwiftUI
@@ -45,24 +43,36 @@ struct PreLandingView: View {
     var body: some View {
         /* ... */
         .onAppear {
-            // Trigger a search for installation links
-            //  if a link is found successfully, it will be triggered to openURL below
-            viewModel.traceback.postInstallSearchLink()
+            Task {
+                // 1.- Search for post-install link and proceed if available
+                guard let result = try? await traceback.postInstallSearchLink(),
+                      let tracebackURL = result.url else {
+                    return
+                }
+                proceed(onOpenURL: tracebackURL)
+            }
         }
         .onOpenURL { url in
-            // URL is either a post-install link (detected after app download on onAppear above),
-            //  or an opened url (direct open in installed app)
-            guard let linkResult = try? viewModel.traceback.extractLinkFromURL(url) else {
-                return assertionFailure("Could not find a valid traceback/universal url in \(url)")
-            }
-            // Send the right analytics in linkResult.analyticsEvents (optional).
-            //  Both success and failure analytics are reported
-            guard let linkURL = linkResult.url else {
-                return assertionFailure("Could not find a valid traceback/universal url in \(url)")
-            }
-            // Handle the url, opening the right content indicated by linkURL
-            YOUR CODE HERE
+            proceed(onOpenURL: url)
         }
+    }
+    
+    // This method is to be called from onOpenURL or after post install link search
+    func proceed(
+        onOpenURL: URL
+    ) {
+        // 2.- Grab the correct url
+        //  URL is either a post-install link (detected after app download on onAppear above),
+        //  or an opened url (direct open in installed app)
+        guard let linkResult = try? traceback.extractLinkFromURL(url),
+              let linkURL = linkResult.url else {
+            return assertionFailure("Could not find a valid traceback/universal url in \(url)")
+        }
+        
+        // 3.- Handle the url, opening the right content indicated by linkURL
+        // Use linkURL to navigate to the appropriate content in your app
+        // You can also access linkResult.analytics for tracking purposes
+        YOUR CODE HERE
     }
 }
 ```
@@ -74,10 +84,19 @@ struct PreLandingView: View {
 @MainActor
 class YourAppDelegate: NSObject, UIApplicationDelegate {
 
-    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
-        // Trigger a search for installation links
-        //  if a link is found successfully, it will be triggered to openURL (see next section)
-        traceback.postInstallSearchLink()
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
+    ) -> Bool {
+        Task {
+            // 1.- Trigger a search for installation links
+            //  if a link is found successfully, it will be sent to proceed(openURL:) below
+            guard let result = try? await traceback.postInstallSearchLink(),
+                  let tracebackURL = result.url else {
+                return
+            }
+            proceed(onOpenURL: tracebackURL)
+        }
         return true
     }
 
@@ -88,21 +107,37 @@ class YourAppDelegate: NSObject, UIApplicationDelegate {
         open url: URL,
         options: [UIApplication.OpenURLOptionsKey: Any]
     ) -> Bool {
-        // URL is either a post-install link (detected after app download on onAppear above),
-        //  or an opened url (direct open in installed app)
-        guard let linkResult = try? traceback.extractLinkFromURL(url) else {
-            assertionFailure("Could not find a valid traceback/universal url in \(url)")
-            return false
-        }
-        // Send the right analytics in linkResult.analyticsEvents (optional).
-        //  Both success and failure analytics are reported
-        guard let linkURL = linkResult.url else {
-            assertionFailure("Could not find a valid traceback/universal url in \(url)")
-            return false
-        }
-        // Handle the url, opening the right content indicated by linkURL
-        YOUR CODE HERE
+        proceed(onOpenURL: url)
         return true
+    }
+    
+    // This method is to be called from application(open:options:) or after post install link search
+    func proceed(
+        onOpenURL: URL
+    ) {
+        // 2.- Grab the correct url
+        //  URL is either a post-install link (detected after app launch above),
+        //  or an opened url (direct open in installed app)
+        guard let linkResult = try? traceback.extractLinkFromURL(url),
+              let linkURL = linkResult.url else {
+            return assertionFailure("Could not find a valid traceback/universal url in \(url)")
+        }
+        
+        // 3.- Handle the url, opening the right content indicated by linkURL
+        // Use linkURL to navigate to the appropriate content in your app
+        // You can also access linkResult.analytics for tracking purposes
+        YOUR CODE HERE
     }
 }
 ```
+
+## Diagnostics
+
+The SDK includes a comprehensive diagnostics tool to validate your dynamic links configuration:
+
+```swift
+// Call this during app development to verify your setup
+traceback.performDiagnostics()
+```
+
+This will output detailed diagnostic information using os_log, including configuration validation, app setup verification, and environment checks.

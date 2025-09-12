@@ -1,18 +1,26 @@
 # ``Traceback``
 
-A lightweight iOS companion library for Traceback's' firebase extension.
+A lightweight iOS companion library for the Traceback Firebase extension - a modern replacement for Firebase Dynamic Links.
 
 ## Overview
 
-Traceback has been built as a replacement for firebase dynamic links. This SDK helps interacting with the firebase extension.
+Traceback provides seamless deep link functionality for iOS apps after Firebase Dynamic Links was discontinued. This SDK works with the Traceback Firebase extension to enable:
 
-* **Post install deep link detection**
+* **Post-install deep link detection**
 
-    Detect installation links even after app store connetion and install with ease.
+    Automatically detect and handle links that triggered app installation, even after App Store download and install.
 
-* **Link detection**
+* **Universal link handling**
 
-    Grab the correct link and parameters from universal links (either a post -install or an app-opening link)
+    Extract and process deep link parameters from universal links, whether from post-install or direct app-opening scenarios.
+
+* **Comprehensive diagnostics**
+
+    Built-in validation tools to ensure proper configuration and troubleshoot setup issues.
+
+* **Analytics integration**
+
+    Track link detection events and performance metrics for better insights.
 
 ## Topics
 
