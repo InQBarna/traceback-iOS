@@ -24,8 +24,7 @@ func checkCreateFingerPrint() async throws {
         webviewInfo: WebViewNavigatorReader.Navigator(
             language: localeFromWebView,
             appVersion: appVersionFromWebView
-        ),
-        darkLaunchDetectedLink: nil
+        )
     )
     let expectedFingerprint = await DeviceFingerprint(
         appInstallationTime: system.installationTime,
@@ -42,8 +41,7 @@ func checkCreateFingerPrint() async throws {
             screenResolutionWidth: Int(UIScreen.main.bounds.width),
             screenResolutionHeight: Int(UIScreen.main.bounds.height),
             timezone: "Europe/Madrid"
-        ),
-        darkLaunchDetectedLink: nil
+        )
     )
     #expect(
         createdFingerPrint == expectedFingerprint

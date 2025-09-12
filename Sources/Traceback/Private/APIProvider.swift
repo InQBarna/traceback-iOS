@@ -18,8 +18,7 @@ struct APIProvider: Sendable {
     }
 
     func sendFingerprint(
-        _ fingerprint: DeviceFingerprint,
-        darkLaunchDetectedLink: URL?
+        _ fingerprint: DeviceFingerprint
     ) async throws -> PostInstallLinkSearchResponse {
 
         let url = config.host.appendingPathComponent("v1_postinstall_search_link", isDirectory: false)

@@ -18,7 +18,7 @@ public struct TracebackSDK {
     /// @Discussion Calling this method right after app installation will search for the content url that
     /// was expected to be displayed at the very beginning of app install path. The method will return a
     /// valid url only once, later calls will no longer search for the opening url.
-    public let postInstallSearchLink: (_ darkLaunchInfo: DarkLaunchInfo?) async throws -> Result?
+    public let postInstallSearchLink: () async throws -> Result?
     /// Parses the url that triggered app launch and extracts the real expected url to be opened
     ///
     /// @Discussion When a specific content is expected to be opened inside the application. The real url
@@ -51,20 +51,6 @@ public struct TracebackSDK {
         public let analytics: [TracebackAnalyticsEvent]
     }
 }
-///
-/// Info necessary to grab dark launch analytics
-///
-public struct DarkLaunchInfo {
-    /// Includes the firebase dynamic links resolution. To be compared to traceback resolution for remote diagnostics.
-    let darkLaunchDetectedLink: URL?
-    /// Includes the pasteboard, to be grabbed before firebase dynamic links, since firebase dynamic links clears the clipboard.
-    let previouslyGrabbedClipboard: URL?
-    
-    public init(darkLaunchDetectedLink: URL?, previouslyGrabbedClipboard: URL?) {
-        self.darkLaunchDetectedLink = darkLaunchDetectedLink
-        self.previouslyGrabbedClipboard = previouslyGrabbedClipboard
-    }
-}
 
 
 public extension TracebackSDK {
@@ -80,12 +66,12 @@ public extension TracebackSDK {
         let logger = Logger(level: config.logLevel)
         return TracebackSDK(
             configuration: config,
-            postInstallSearchLink: { darkLaunchInfo in
+            postInstallSearchLink: {
                 await TracebackSDKImpl(
                     config: config,
                     logger: logger
                 )
-                .detectPostInstallLink(darkLaunchInfo: darkLaunchInfo)
+                .detectPostInstallLink()
             },
             extractLinkFromURL: { url in
                 try? TracebackSDKImpl(

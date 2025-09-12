@@ -126,12 +126,4 @@ class YourAppDelegate: NSObject, UIApplicationDelegate {
 }
 ```
 
-## Dark Launching w/ Firebase Dynamic Links
-
-In order to double check Traceback results, it can be darklaunched and compared to 
-firebase dynamic links performance. In the following example we will launch both
-firebase dynamic links and Traceback, final decision will be based on firebase dynamic
-links.
-
-Check [Dark Launch Guide](DARKLAUNCH.md).
 
