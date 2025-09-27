@@ -33,7 +33,7 @@ struct DeviceFingerprint: Codable, Equatable, Sendable {
 func createDeviceFingerprint(
     system: SystemInfo,
     linkFromClipboard: URL?,
-    webviewInfo: WebViewNavigatorReader.Navigator?
+    webviewInfo: WebViewInfo?
 ) -> DeviceFingerprint {
     
     let isCompatibilityMode =

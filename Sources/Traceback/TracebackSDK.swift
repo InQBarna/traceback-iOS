@@ -63,7 +63,7 @@ public extension TracebackSDK {
     ///    is recommended
     ///
     static func live(config: TracebackConfiguration) -> TracebackSDK {
-        let logger = Logger(level: config.logLevel)
+        let logger = Logger.live(level: config.logLevel)
         return TracebackSDK(
             configuration: config,
             postInstallSearchLink: {
@@ -83,8 +83,12 @@ public extension TracebackSDK {
                 )
             },
             performDiagnostics: {
-                Task {
-                    await TracebackSDKImpl.performDiagnostics(config: config)
+                Task { @MainActor in
+                    var result: DiagnosticsResult?
+                    TracebackSDKImpl.performDiagnostics(
+                        config: config,
+                        diagnosticsResult: &result
+                    )
                 }
             }
         )

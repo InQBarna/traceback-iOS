@@ -1,22 +1,21 @@
 //
-//  APIClient.swift
-//  traceback-ios
+//  NetworkImpl.swift
+//  Traceback
 //
-//  Created by Sergi Hernanz on 7/4/25.
+//  Created by Sergi Hernanz on 27/9/25.
 //
 
 import Foundation
 
-struct NetworkConfiguration: Sendable {
-    let host: URL
-
-    init(host: URL) {
-        self.host = host
+extension Network {
+    public static let live = Network { request in
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            return (data, response)
+        } catch {
+            throw NetworkError(error: error)
+        }
     }
-}
-
-struct Network: Sendable {
-    let fetchData: @Sendable (URLRequest) async throws -> (Data, URLResponse)
 }
 
 extension NetworkError {
@@ -46,24 +45,6 @@ extension NetworkError {
             }
         } else {
             self = .unknown
-        }
-    }
-}
-
-extension Network {
-    func fetch<T: Decodable>(_ type: T.Type, request: URLRequest) async throws -> T {
-        let (jsonData, _) = try await fetchData(request)
-        return try JSONDecoder().decode(type, from: jsonData)
-    }
-}
-
-extension Network {
-    public static let live = Network { request in
-        do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            return (data, response)
-        } catch {
-            throw NetworkError(error: error)
         }
     }
 }

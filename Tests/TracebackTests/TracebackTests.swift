@@ -21,7 +21,7 @@ func checkCreateFingerPrint() async throws {
     let createdFingerPrint = await createDeviceFingerprint(
         system: system,
         linkFromClipboard: link,
-        webviewInfo: WebViewNavigatorReader.Navigator(
+        webviewInfo: WebViewInfo(
             language: localeFromWebView,
             appVersion: appVersionFromWebView
         )
@@ -50,7 +50,11 @@ func checkCreateFingerPrint() async throws {
 
 @Test
 func checkLocaleFromWebview() async throws {
-    let reader = await WebViewNavigatorReader()
-    let localeFromWebView = await reader.getWebViewInfo()
-    #expect(localeFromWebView?.language == Locale.current.identifier)
+    let reader = WebViewInfoReader.live()
+    let localeFromWebView = await reader.getInfo()
+    let systemLocaleString = Locale.current.identifier.split(separator: "@").first.map { String($0) }
+    #expect(
+        localeFromWebView?.language ==
+        systemLocaleString?.replacingOccurrences(of: "_", with: "-")
+    )
 }

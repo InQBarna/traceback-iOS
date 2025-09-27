@@ -5,19 +5,21 @@
 //  Created by Sergi Hernanz on 7/4/25.
 //
 
-
 import WebKit
 
-final class WebViewNavigatorReader: NSObject, WKNavigationDelegate {
-    private var webView: WKWebView?
-    private var continuation: CheckedContinuation<Navigator?, Never>?
-    
-    struct Navigator {
-        let language: String?
-        let appVersion: String?
+extension WebViewInfoReader {
+    static func live() -> WebViewInfoReader {
+        WebViewInfoReader {
+            await WebViewNavigatorReader().getWebViewInfo()
+        }
     }
+}
 
-    func getWebViewInfo() async -> Navigator? {
+private final class WebViewNavigatorReader: NSObject, WKNavigationDelegate {
+    private var webView: WKWebView?
+    private var continuation: CheckedContinuation<WebViewInfo?, Never>?
+
+    func getWebViewInfo() async -> WebViewInfo? {
         await withCheckedContinuation { continuation in
             self.continuation = continuation
             let config = WKWebViewConfiguration()
@@ -48,7 +50,7 @@ final class WebViewNavigatorReader: NSObject, WKNavigationDelegate {
             webView.evaluateJavaScript("window.generateDeviceLanguage()") { [weak self] language, _ in
                 let languageString = language as? String
                 self?.continuation?.resume(
-                    returning: Navigator(
+                    returning: WebViewInfo(
                         language: languageString,
                         appVersion: appVersionString
                     )
