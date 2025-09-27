@@ -39,19 +39,16 @@ jobs:
         name: test-results-${{ strategy.job-index }}
         path: TestResults-*.xcresult
 
-  swift-package:
-    name: Swift Package Manager
+  package-validation:
+    name: Package Validation
     runs-on: macos-latest
 
     steps:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Validate Swift Package
+    - name: Validate Package Resolution
       run: swift package resolve
 
-    - name: Build Swift Package
-      run: swift build -c release
-
-    - name: Run Swift Package Tests
-      run: swift test
+    - name: Show Package Dependencies
+      run: swift package show-dependencies
