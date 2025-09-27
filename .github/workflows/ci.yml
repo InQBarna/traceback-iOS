@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    name: Test
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Build and Test
+      run: |
+        xcodebuild test \
+          -scheme Traceback \
+          -destination 'platform=macOS,arch=arm64,variant=Mac Catalyst'
+
+  package-validation:
+    name: Package Validation
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Validate Package Resolution
+      run: swift package resolve
+
+    - name: Show Package Dependencies
+      run: swift package show-dependencies
