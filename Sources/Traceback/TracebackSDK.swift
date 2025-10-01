@@ -36,7 +36,8 @@ public struct TracebackSDK {
     ///
     public enum MatchType {
         case unique         /// A unique result returned, given by pasteboard
-        case `default`      /// Heuristics search success
+        case heuristics     /// Heuristics search success
+        case ambiguous      /// Heuristics seach success but ambiguous match
         case none           /// No match found
         case unknown        /// Not determined match type
     }

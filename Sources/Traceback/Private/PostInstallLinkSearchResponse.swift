@@ -21,10 +21,12 @@ extension PostInstallLinkSearchResponse {
         switch match_type {
         case "unique":
             return .unique
+        case "heuristics":
+            return .heuristics
+        case "ambiguous":
+            return .ambiguous
         case "none":
             return .none
-        case "ambiguous":
-            return .default
         default:
             return .unknown
         }
