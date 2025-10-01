@@ -108,16 +108,27 @@ func testPostInstallLinkSearchResponseMatchTypes() throws {
     )
     #expect(noneResponse.matchType == TracebackSDK.MatchType.none)
 
-    // Test ambiguous match type
+    // Test heuristics match type
     let ambiguousResponse = PostInstallLinkSearchResponse(
         deep_link_id: URL(string: "https://example.com/default"),
         match_message: "Ambiguous match",
+        match_type: "heuristics",
+        request_ip_version: "ipv4",
+        utm_medium: nil,
+        utm_source: nil
+    )
+    #expect(ambiguousResponse.matchType == TracebackSDK.MatchType.heuristics)
+
+    // Test ambiguous match type
+    let heuristicsResponse = PostInstallLinkSearchResponse(
+        deep_link_id: URL(string: "https://example.com/default"),
+        match_message: "Heuristics match",
         match_type: "ambiguous",
         request_ip_version: "ipv4",
         utm_medium: nil,
         utm_source: nil
     )
-    #expect(ambiguousResponse.matchType == TracebackSDK.MatchType.default)
+    #expect(heuristicsResponse.matchType == TracebackSDK.MatchType.ambiguous)
 
     // Test unknown match type
     let unknownResponse = PostInstallLinkSearchResponse(
