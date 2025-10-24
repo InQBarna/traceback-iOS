@@ -13,6 +13,10 @@ public enum TracebackAnalyticsEvent {
     case postInstallDetected(URL)
     /// A post-installation content url failure
     case postInstallError(Error)
+    /// A get-campaign content url has been resolved
+    case campaignResolved(URL)
+    /// A get-campaign content url failure
+    case campaignError(Error)
 }
 
 /// Main configuration for the traceback sdk.

@@ -273,7 +273,7 @@ func testNetworkConfigurationWithAPIProvider() async throws {
         {
             "deep_link_id": "https://example.com/test",
             "match_message": "Success",
-            "match_type": "unique",
+            "matchType": "unique",
             "request_ip_version": "ipv4",
             "utm_medium": null,
             "utm_source": null

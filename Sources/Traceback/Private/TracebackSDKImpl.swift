@@ -12,17 +12,21 @@ private let userDefaultsExistingRunKey = "traceback_existingRun"
 
 extension TracebackSDK.Result {
     static var empty: Self {
-        TracebackSDK.Result(url: nil, match_type: .none, analytics: [])
+        TracebackSDK.Result(url: nil, campaign: nil, matchType: .none, analytics: [])
     }
 }
 
 final class TracebackSDKImpl {
     private let config: TracebackConfiguration
     private let logger: Logger
+    private let campaignTracker: CampaignTracker
+    
+    private var universalLinkContinuation: CheckedContinuation<URL?, Never>?
 
-    init(config: TracebackConfiguration, logger: Logger) {
+    init(config: TracebackConfiguration, logger: Logger, campaignTracker: CampaignTracker) {
         self.config = config
         self.logger = logger
+        self.campaignTracker = campaignTracker
     }
 
     func detectPostInstallLink() async -> TracebackSDK.Result {
@@ -33,6 +37,10 @@ final class TracebackSDKImpl {
                         "won't continue searching for install link")
             return .empty
         }
+        
+        logger.debug("Waiting for universal link")
+        let linkFromIntent = await waitForUniversalLink(timeout: 0.5)
+        logger.debug("Got universal link: \(linkFromIntent?.absoluteString ?? "none")")
         
         logger.info("Checking for post-install link")
 
@@ -57,6 +65,7 @@ final class TracebackSDKImpl {
             let fingerprint = await createDeviceFingerprint(
                 system: system,
                 linkFromClipboard: linkFromClipboard,
+                linkFromIntent: linkFromIntent,
                 webviewInfo: webviewInfo
             )
 
@@ -71,61 +80,168 @@ final class TracebackSDKImpl {
             )
 
             let response = try await api.sendFingerprint(fingerprint)
-            logger.info("Server responded with match type: \(response.match_type)")
+            logger.info("Server responded with match type: \(response.matchType)")
             
+            // 5. Save checks locally
             UserDefaults.standard.set(true, forKey: userDefaultsExistingRunKey)
             logger.info("Post-install success saved to user defaults \(userDefaultsExistingRunKey)" +
                         " so it is no longer checked")
             
-            if let deep_link_id = response.deep_link_id {
+            if let campaign = response.match_campaign {
+                campaignTracker.markCampaignAsSeen(campaign)
+                logger.info("Campaign \(campaign) seen for first time")
+            }
+            
+            // TODO: remove this if backend sends final deeplink
+            if
+                let longLink = response.deep_link_id,
+                let deeplink = try? extractLink(from: longLink)
+            {
                 return TracebackSDK.Result(
-                    url: response.deep_link_id,
-                    match_type: response.matchType,
-                    analytics: [
-                        .postInstallDetected(deep_link_id)
-                    ]
-                )
-            } else {
-                return TracebackSDK.Result(
-                    url: response.deep_link_id,
-                    match_type: response.matchType,
-                    analytics: []
+                    url: deeplink,
+                    campaign: response.match_campaign,
+                    matchType: response.matchType,
+                    analytics: response.deep_link_id.map { [.postInstallDetected($0)] } ?? []
                 )
             }
+            
+            // 6. Return what we have found
+            return TracebackSDK.Result(
+                url: response.deep_link_id,
+                campaign: response.match_campaign,
+                matchType: response.matchType,
+                analytics: response.deep_link_id.map { [.postInstallDetected($0)] } ?? []
+            )
         } catch {
             logger.error("Failed to detect post-install link: \(error.localizedDescription)")
             return TracebackSDK.Result(
                 url: nil,
-                match_type: .none,
+                campaign: nil,
+                matchType: .none,
                 analytics: [
                     .postInstallError(error)
                 ]
             )
         }
     }
-
     
-    func extractLink(from: URL) throws -> TracebackSDK.Result {
+    private func waitForUniversalLink(timeout: TimeInterval) async -> URL? {
+        // Create a cancellation handle
+        let timeoutTask = Task {
+            try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+            return nil as URL?
+        }
+        
+        // Wait for whichever finishes first
+        let result: URL? = await withCheckedContinuation { continuation in
+            // Store continuation so it can be resumed externally
+            self.universalLinkContinuation = continuation
+            
+            // Also start the timeout watcher
+            Task {
+                let url = await timeoutTask.value
+                continuation.resume(returning: url)
+            }
+        }
+        
+        // Whichever won, cancel the other
+        timeoutTask.cancel()
+        
+        return result
+    }
+    
+    func getCampaignLink(from url: URL) async -> TracebackSDK.Result {
+        do {
+            // 1. Check if first run, if not save link and continue
+            guard UserDefaults.standard.bool(forKey: userDefaultsExistingRunKey) else {
+                logger.info("Do not get campaign links on first run, do it via postInstallSearch")
+                universalLinkContinuation?.resume(returning: url)
+                return .empty
+            }
+            
+            // 2. Extract campaign from url
+            let campaign = extractCampaign(from: url)
+            
+            // 3. If no campaign, process locally
+            guard let campaign else {
+                let deeplink = try? extractLink(from: url)
+                
+                return TracebackSDK.Result(
+                    url: deeplink,
+                    campaign: campaign,
+                    matchType: .unique,
+                    analytics: []
+                )
+            }
+            
+            let isFirstCampaignOpen = campaignTracker.isFirstTimeSeen(campaign)
+            logger.info("Campaign \(campaign) first open \(isFirstCampaignOpen)")
+            
+            // 3. Get campaign resolution from backend
+            let api = APIProvider(
+                config: NetworkConfiguration(
+                    host: config.mainAssociatedHost
+                ),
+                network: Network.live
+            )
+            
+            let response = try await api.getCampaignLink(from: url.absoluteString, isFirstCampaignOpen: isFirstCampaignOpen)
+            logger.info("Server responded with link: \(String(describing: response.result))")
+            
+            guard
+                let deeplink = response.result
+            else {
+                return .empty
+            }
+            
+            return TracebackSDK.Result(
+                url: deeplink,
+                campaign: campaign,
+                matchType: .unique,
+                analytics: [
+                    .campaignResolved(deeplink)
+                ]
+            )
+        } catch {
+            return TracebackSDK.Result(
+                url: nil,
+                campaign: nil,
+                matchType: .none,
+                analytics: [
+                    .campaignError(error)
+                ]
+            )
+        }
+    }
 
-        guard let components = URLComponents(url: from, resolvingAgainstBaseURL: false) else {
+    /// Parses the url that triggered app launch and extracts the real expected url to be opened
+    ///
+    /// @Discussion When a specific content is expected to be opened inside the application. The real url
+    /// defining the content is not allways plain visible in the url which opened the app, since we need to build
+    /// a url that is valid for all platforms, and for installation path. This method extracts the real url to be
+    /// opened.
+    private func extractLink(from url: URL) throws -> URL? {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
             throw TracebackError.ExtractLink.invalidURL
         }
+        
         for queryItem in components.queryItems ?? [] {
             if queryItem.name == "link",
                let value = queryItem.value,
                let url = URL(string: value) {
-                return TracebackSDK.Result(
-                    url: url,
-                    match_type: .unknown,
-                    analytics: []
-                )
+                return url
             }
         }
-        return TracebackSDK.Result(
-            url: nil,
-            match_type: .unknown,
-            analytics: []
-        )
+        
+        return nil
+    }
+    
+    private func extractCampaign(from url: URL) -> String? {
+        let path = url.path
+        if path.count > 1 {
+            return String(path.dropFirst())
+        }
+        return nil
     }
     
     @MainActor

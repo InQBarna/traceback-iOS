@@ -33,4 +33,30 @@ struct APIProvider: Sendable {
             throw NetworkError(error: error)
         }
     }
+
+    func getCampaignLink(from url: String, isFirstCampaignOpen: Bool) async throws -> CampaignResponse {
+        var urlComponents = URLComponents(
+            url: config.host.appendingPathComponent("v1_getCampaign", isDirectory: false),
+            resolvingAgainstBaseURL: false
+        )
+        
+        // Add query parameters
+        urlComponents?.queryItems = [
+            URLQueryItem(name: "link", value: url),
+            URLQueryItem(name: "isFirstCampaignOpen", value: String(isFirstCampaignOpen))
+        ]
+        
+        guard let url = urlComponents?.url else {
+            throw NetworkError.unknown
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        
+        do {
+            return try await network.fetch(CampaignResponse.self, request: request)
+        } catch {
+            throw NetworkError(error: error)
+        }
+    }
 }
