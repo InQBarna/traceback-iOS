@@ -36,7 +36,7 @@ struct APIProvider: Sendable {
 
     func getCampaignLink(from url: String, isFirstCampaignOpen: Bool) async throws -> CampaignResponse {
         var urlComponents = URLComponents(
-            url: config.host.appendingPathComponent("v1_getCampaign", isDirectory: false),
+            url: config.host.appendingPathComponent("v1_get_campaign", isDirectory: false),
             resolvingAgainstBaseURL: false
         )
         
