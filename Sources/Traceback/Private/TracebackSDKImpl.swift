@@ -20,8 +20,7 @@ final class TracebackSDKImpl {
     private let config: TracebackConfiguration
     private let logger: Logger
     private let campaignTracker: CampaignTracker
-    
-    private var universalLinkContinuation: CheckedContinuation<URL?, Never>?
+    private let linkDetectionActor = ValueWaiter<URL>()
 
     init(config: TracebackConfiguration, logger: Logger, campaignTracker: CampaignTracker) {
         self.config = config
@@ -39,7 +38,7 @@ final class TracebackSDKImpl {
         }
         
         logger.debug("Waiting for universal link")
-        let linkFromIntent = await waitForUniversalLink(timeout: 0.5)
+        let linkFromIntent = await linkDetectionActor.waitForValue(timeout: 0.5)
         logger.debug("Got universal link: \(linkFromIntent?.absoluteString ?? "none")")
         
         logger.info("Checking for post-install link")
@@ -125,37 +124,12 @@ final class TracebackSDKImpl {
         }
     }
     
-    private func waitForUniversalLink(timeout: TimeInterval) async -> URL? {
-        // Create a cancellation handle
-        let timeoutTask = Task {
-            try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
-            return nil as URL?
-        }
-        
-        // Wait for whichever finishes first
-        let result: URL? = await withCheckedContinuation { continuation in
-            // Store continuation so it can be resumed externally
-            self.universalLinkContinuation = continuation
-            
-            // Also start the timeout watcher
-            Task {
-                let url = await timeoutTask.value
-                continuation.resume(returning: url)
-            }
-        }
-        
-        // Whichever won, cancel the other
-        timeoutTask.cancel()
-        
-        return result
-    }
-    
     func getCampaignLink(from url: URL) async -> TracebackSDK.Result {
         do {
             // 1. Check if first run, if not save link and continue
             guard UserDefaults.standard.bool(forKey: userDefaultsExistingRunKey) else {
                 logger.info("Do not get campaign links on first run, do it via postInstallSearch")
-                universalLinkContinuation?.resume(returning: url)
+                await linkDetectionActor.provideValue(url)
                 return .empty
             }
             

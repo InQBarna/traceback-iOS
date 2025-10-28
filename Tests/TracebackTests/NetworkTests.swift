@@ -299,6 +299,7 @@ func testNetworkConfigurationWithAPIProvider() async throws {
         osVersion: "18.0",
         sdkVersion: "1.0.0",
         uniqueMatchLinkToCheck: nil,
+        intentLink: nil,
         device: DeviceFingerprint.DeviceInfo(
             deviceModelName: "iPhone15,2",
             languageCode: "en-US",
