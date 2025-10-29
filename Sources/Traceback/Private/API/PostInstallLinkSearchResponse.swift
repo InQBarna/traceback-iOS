@@ -28,6 +28,8 @@ extension PostInstallLinkSearchResponse {
             return .ambiguous
         case "none":
             return .none
+        case "intent":
+            return .intent
         default:
             return .unknown
         }

@@ -12,7 +12,7 @@ import Foundation
 ///
 public struct TracebackSDK {
     
-    static let sdkVersion = "0.3.0"
+    static let sdkVersion = "iOS/0.3.1"
     
     /// Initialization value passed to TracebackSDK.live
     public let configuration: TracebackConfiguration
@@ -30,6 +30,12 @@ public struct TracebackSDK {
     /// will search for the content url associated to the opened url.
     public let campaignSearchLink: (URL) async throws -> TracebackSDK.Result?
     
+    /// Validate input URL
+    ///
+    /// @Discussion Validates if the domain of the given URL matches any of the
+    /// associated domains in configuration
+    public let isTracebackURL: (URL) -> Bool
+    
     /// Diagnostics info
     ///
     /// @Discussion Call this method at app startup to diagnose your current setup
@@ -38,20 +44,19 @@ public struct TracebackSDK {
     ///
     /// Match type when searching for a post-install link
     ///
-    public enum MatchType {
+    public enum MatchType: Sendable {
         case unique         /// A unique result returned, given by pasteboard
         case heuristics     /// Heuristics search success
         case ambiguous      /// Heuristics seach success but ambiguous match
         case none           /// No match found
+        case intent         /// A unique result returned, given by link opened by client
         case unknown        /// Not determined match type
     }
 
     /// Result of traceback main methods. Contains the resulting URL and events so analytics can be saved
-    public struct Result {
+    public struct Result: Sendable {
         /// A valid url if the method correctly finds a post install link, or opened url contains a valid deep link
         public let url: URL?
-        /// The campaign associated to the inspected URL, if any
-        public let campaign: String?
         /// The match type when extracting the post install
         public let matchType: MatchType
         /// Analytics to be sent to your preferred analytics platform
@@ -85,6 +90,9 @@ public extension TracebackSDK {
             },
             campaignSearchLink: { url in
                 await implementation.getCampaignLink(from: url)
+            },
+            isTracebackURL: { url in
+                implementation.isTracebackURL(url)
             },
             performDiagnostics: {
                 Task { @MainActor in

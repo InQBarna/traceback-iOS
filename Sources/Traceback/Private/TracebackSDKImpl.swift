@@ -12,7 +12,7 @@ private let userDefaultsExistingRunKey = "traceback_existingRun"
 
 extension TracebackSDK.Result {
     static var empty: Self {
-        TracebackSDK.Result(url: nil, campaign: nil, matchType: .none, analytics: [])
+        TracebackSDK.Result(url: nil, matchType: .none, analytics: [])
     }
 }
 
@@ -80,6 +80,7 @@ final class TracebackSDKImpl {
 
             let response = try await api.sendFingerprint(fingerprint)
             logger.info("Server responded with match type: \(response.matchType)")
+            logger.debug("Server responded deep link: \(response)")
             
             // 5. Save checks locally
             UserDefaults.standard.set(true, forKey: userDefaultsExistingRunKey)
@@ -91,23 +92,9 @@ final class TracebackSDKImpl {
                 logger.info("Campaign \(campaign) seen for first time")
             }
             
-            // TODO: remove this if backend sends final deeplink
-            if
-                let longLink = response.deep_link_id,
-                let deeplink = try? extractLink(from: longLink)
-            {
-                return TracebackSDK.Result(
-                    url: deeplink,
-                    campaign: response.match_campaign,
-                    matchType: response.matchType,
-                    analytics: response.deep_link_id.map { [.postInstallDetected($0)] } ?? []
-                )
-            }
-            
             // 6. Return what we have found
             return TracebackSDK.Result(
                 url: response.deep_link_id,
-                campaign: response.match_campaign,
                 matchType: response.matchType,
                 analytics: response.deep_link_id.map { [.postInstallDetected($0)] } ?? []
             )
@@ -115,7 +102,6 @@ final class TracebackSDKImpl {
             logger.error("Failed to detect post-install link: \(error.localizedDescription)")
             return TracebackSDK.Result(
                 url: nil,
-                campaign: nil,
                 matchType: .none,
                 analytics: [
                     .postInstallError(error)
@@ -126,9 +112,11 @@ final class TracebackSDKImpl {
     
     func getCampaignLink(from url: URL) async -> TracebackSDK.Result {
         do {
+            logger.info("Get campaign link")
+            
             // 1. Check if first run, if not save link and continue
             guard UserDefaults.standard.bool(forKey: userDefaultsExistingRunKey) else {
-                logger.info("Do not get campaign links on first run, do it via postInstallSearch")
+                logger.info("Do not get campaign link on first run, do it via postInstallSearch")
                 await linkDetectionActor.provideValue(url)
                 return .empty
             }
@@ -138,18 +126,15 @@ final class TracebackSDKImpl {
             
             // 3. If no campaign, process locally
             guard let campaign else {
+                logger.info("The link does not have a campaign, treat locally as intent")
                 let deeplink = try? extractLink(from: url)
                 
                 return TracebackSDK.Result(
                     url: deeplink,
-                    campaign: campaign,
-                    matchType: .unique,
+                    matchType: .intent,
                     analytics: []
                 )
             }
-            
-            let isFirstCampaignOpen = campaignTracker.isFirstTimeSeen(campaign)
-            logger.info("Campaign \(campaign) first open \(isFirstCampaignOpen)")
             
             // 3. Get campaign resolution from backend
             let api = APIProvider(
@@ -158,6 +143,11 @@ final class TracebackSDKImpl {
                 ),
                 network: Network.live
             )
+            
+            logger.info("Getting campaign deeplink remotely for campaign \(campaign)")
+            
+            let isFirstCampaignOpen = campaignTracker.isFirstTimeSeen(campaign)
+            logger.debug("Campaign \(campaign) first open \(isFirstCampaignOpen)")
             
             let response = try await api.getCampaignLink(from: url.absoluteString, isFirstCampaignOpen: isFirstCampaignOpen)
             logger.info("Server responded with link: \(String(describing: response.result))")
@@ -170,16 +160,15 @@ final class TracebackSDKImpl {
             
             return TracebackSDK.Result(
                 url: deeplink,
-                campaign: campaign,
-                matchType: .unique,
+                matchType: .intent,
                 analytics: [
                     .campaignResolved(deeplink)
                 ]
             )
         } catch {
+            logger.error("Failed to resolve campaign link: \(error.localizedDescription)")
             return TracebackSDK.Result(
                 url: nil,
-                campaign: nil,
                 matchType: .none,
                 analytics: [
                     .campaignError(error)
@@ -210,12 +199,21 @@ final class TracebackSDKImpl {
         return nil
     }
     
+    /// Parses the campaign from a Traceback URL, which is the path of the Traceback URL
     private func extractCampaign(from url: URL) -> String? {
         let path = url.path
         if path.count > 1 {
             return String(path.dropFirst())
         }
         return nil
+    }
+    
+    /// Determines whether a URL should be processed by Traceback or not based on the configured domains
+    func isTracebackURL(_ url: URL) -> Bool {
+        guard let host = url.host else { return false }
+        
+        return host == config.mainAssociatedHost.host ||
+        (config.associatedHosts?.contains(where: { $0.host == host }) ?? false)
     }
     
     @MainActor
