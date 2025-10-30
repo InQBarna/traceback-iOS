@@ -90,7 +90,8 @@ func testPostInstallLinkSearchResponseMatchTypes() throws {
     let uniqueResponse = PostInstallLinkSearchResponse(
         deep_link_id: URL(string: "https://example.com/product/123"),
         match_message: "Unique match found",
-        matchType: "unique",
+        match_type: "unique",
+        match_campaign: nil,
         request_ip_version: "ipv4",
         utm_medium: "social",
         utm_source: "facebook"
@@ -101,7 +102,8 @@ func testPostInstallLinkSearchResponseMatchTypes() throws {
     let noneResponse = PostInstallLinkSearchResponse(
         deep_link_id: nil,
         match_message: "No match found",
-        matchType: "none",
+        match_type: "none",
+        match_campaign: nil,
         request_ip_version: "ipv4",
         utm_medium: nil,
         utm_source: nil
@@ -112,7 +114,8 @@ func testPostInstallLinkSearchResponseMatchTypes() throws {
     let ambiguousResponse = PostInstallLinkSearchResponse(
         deep_link_id: URL(string: "https://example.com/default"),
         match_message: "Ambiguous match",
-        matchType: "heuristics",
+        match_type: "heuristics",
+        match_campaign: nil,
         request_ip_version: "ipv4",
         utm_medium: nil,
         utm_source: nil
@@ -123,7 +126,8 @@ func testPostInstallLinkSearchResponseMatchTypes() throws {
     let heuristicsResponse = PostInstallLinkSearchResponse(
         deep_link_id: URL(string: "https://example.com/default"),
         match_message: "Heuristics match",
-        matchType: "ambiguous",
+        match_type: "ambiguous",
+        match_campaign: nil,
         request_ip_version: "ipv4",
         utm_medium: nil,
         utm_source: nil
@@ -134,7 +138,8 @@ func testPostInstallLinkSearchResponseMatchTypes() throws {
     let unknownResponse = PostInstallLinkSearchResponse(
         deep_link_id: nil,
         match_message: "Unknown",
-        matchType: "other",
+        match_type: "other",
+        match_campaign: nil,
         request_ip_version: "ipv4",
         utm_medium: nil,
         utm_source: nil
@@ -213,7 +218,7 @@ func testAnalyticsEvents() throws {
     switch detectedEvent {
     case .postInstallDetected(let url):
         #expect(url == testURL)
-    case .postInstallError:
+    default:
         #expect(Bool(false), "Expected postInstallDetected event")
     }
 
@@ -223,10 +228,10 @@ func testAnalyticsEvents() throws {
     let errorEvent = TracebackAnalyticsEvent.postInstallError(error)
 
     switch errorEvent {
-    case .postInstallDetected:
-        #expect(Bool(false), "Expected postInstallError event")
     case .postInstallError(let receivedError):
         #expect(receivedError is TestError)
+    default:
+        #expect(Bool(false), "Expected postInstallError event")
     }
 }
 
@@ -285,6 +290,7 @@ func testDeviceFingerprintEquality() throws {
         osVersion: "18.0",
         sdkVersion: "1.0.0",
         uniqueMatchLinkToCheck: nil,
+        intentLink: nil,
         device: deviceInfo1
     )
 
@@ -294,6 +300,7 @@ func testDeviceFingerprintEquality() throws {
         osVersion: "18.0",
         sdkVersion: "1.0.0",
         uniqueMatchLinkToCheck: nil,
+        intentLink: nil,
         device: deviceInfo2
     )
 
@@ -335,6 +342,7 @@ func testAPIProviderWithMockNetwork() async throws {
         osVersion: "18.0",
         sdkVersion: "1.0.0",
         uniqueMatchLinkToCheck: URL(string: "https://test.com/link"),
+        intentLink: nil,
         device: DeviceFingerprint.DeviceInfo(
             deviceModelName: "iPhone15,2",
             languageCode: "en-US",
@@ -350,7 +358,7 @@ func testAPIProviderWithMockNetwork() async throws {
     let response = try await apiProvider.sendFingerprint(testFingerprint)
 
     #expect(response.deep_link_id?.absoluteString == "https://example.com/product/123")
-    #expect(response.matchType == "unique")
+    #expect(response.match_type == "unique")
     #expect(response.matchType == TracebackSDK.MatchType.unique)
 }
 
@@ -369,6 +377,7 @@ func testAPIProviderNetworkError() async throws {
         osVersion: "18.0",
         sdkVersion: "1.0.0",
         uniqueMatchLinkToCheck: nil,
+        intentLink: nil,
         device: DeviceFingerprint.DeviceInfo(
             deviceModelName: "iPhone15,2",
             languageCode: "en-US",
