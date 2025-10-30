@@ -79,7 +79,7 @@ final class TracebackSDKImpl {
             )
 
             let response = try await api.sendFingerprint(fingerprint)
-            logger.info("Server responded with match type: \(response.matchType)")
+            logger.info("Server responded with match type: \(response.match_type)")
             logger.debug("Server responded deep link: \(response)")
             
             // 5. Save checks locally
