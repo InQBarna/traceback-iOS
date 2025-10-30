@@ -8,11 +8,15 @@
 import Foundation
 
 /// Events returned by the sdk methods so they can be reported to your preferred analytics platform
-public enum TracebackAnalyticsEvent {
+public enum TracebackAnalyticsEvent: Sendable {
     /// A post-installation content url has been detected
     case postInstallDetected(URL)
     /// A post-installation content url failure
     case postInstallError(Error)
+    /// A get-campaign content url has been resolved
+    case campaignResolved(URL)
+    /// A get-campaign content url failure
+    case campaignError(Error)
 }
 
 /// Main configuration for the traceback sdk.

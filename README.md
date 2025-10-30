@@ -196,7 +196,7 @@ The diagnostics will categorize issues as:
 The result object returned by `postInstallSearchLink()` and `extractLinkFromURL()` contains:
 
 - `url: URL?` - The extracted deep link URL to navigate to
-- `match_type: MatchType` - How the link was detected (`.unique`, `.default`, `.none`, `.unknown`)
+- `matchType: MatchType` - How the link was detected (`.unique`, `.heuristics`, `.ambiguous`, `.intent`, `.none`)
 - `analytics: [TracebackAnalyticsEvent]` - Analytics events you can send to your preferred platform
 
 ### TracebackConfiguration

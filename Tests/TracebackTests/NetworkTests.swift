@@ -274,6 +274,7 @@ func testNetworkConfigurationWithAPIProvider() async throws {
             "deep_link_id": "https://example.com/test",
             "match_message": "Success",
             "match_type": "unique",
+            "match_campaign": "summer_sale",
             "request_ip_version": "ipv4",
             "utm_medium": null,
             "utm_source": null
@@ -299,6 +300,7 @@ func testNetworkConfigurationWithAPIProvider() async throws {
         osVersion: "18.0",
         sdkVersion: "1.0.0",
         uniqueMatchLinkToCheck: nil,
+        intentLink: nil,
         device: DeviceFingerprint.DeviceInfo(
             deviceModelName: "iPhone15,2",
             languageCode: "en-US",

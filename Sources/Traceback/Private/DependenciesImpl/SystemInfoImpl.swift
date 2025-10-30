@@ -14,7 +14,7 @@ enum TracebackSystemImpl {
         SystemInfo(
             installationTime: installationTime(),
             deviceModelName: deviceModelName(),
-            sdkVersion: sdkVersion(),
+            sdkVersion: TracebackSDK.sdkVersion,
             localeIdentifier: Locale.preferredLanguages.first ?? Locale.current.identifier,
             timezone: TimeZone.current,
             osVersion: UIDevice.current.systemVersion,
@@ -48,15 +48,5 @@ enum TracebackSystemImpl {
             return acc + String(UnicodeScalar(UInt8(value)))
         }
 #endif
-    }
-    
-    private static func sdkVersion() -> String {
-        guard let infoDictSDKVersion = Bundle(for: TracebackSDKImpl.self)
-            .infoDictionary?["CFBundleShortVersionString"] as? String else {
-            // fails in unit test
-            // assertionFailure()
-            return "1.0.0"
-        }
-        return infoDictSDKVersion
     }
 }

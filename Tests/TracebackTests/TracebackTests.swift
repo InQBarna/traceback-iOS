@@ -21,6 +21,7 @@ func checkCreateFingerPrint() async throws {
     let createdFingerPrint = await createDeviceFingerprint(
         system: system,
         linkFromClipboard: link,
+        linkFromIntent: nil,
         webviewInfo: WebViewInfo(
             language: localeFromWebView,
             appVersion: appVersionFromWebView
@@ -32,6 +33,7 @@ func checkCreateFingerPrint() async throws {
         osVersion: system.osVersion,
         sdkVersion: system.sdkVersion,
         uniqueMatchLinkToCheck: link,
+        intentLink: nil,
         device: .init(
             deviceModelName: system.deviceModelName,
             languageCode: "es-ES",

@@ -11,6 +11,7 @@ struct PostInstallLinkSearchResponse: Decodable, Equatable, Sendable {
     let deep_link_id: URL?
     let match_message: String
     let match_type: String
+    let match_campaign: String?
     let request_ip_version: String
     let utm_medium: String?
     let utm_source: String?
@@ -27,6 +28,8 @@ extension PostInstallLinkSearchResponse {
             return .ambiguous
         case "none":
             return .none
+        case "intent":
+            return .intent
         default:
             return .unknown
         }

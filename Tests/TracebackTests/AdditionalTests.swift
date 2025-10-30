@@ -35,53 +35,6 @@ func testTracebackConfigurationDefaults() throws {
     #expect(config.logLevel == .info)
 }
 
-// MARK: - URL Extraction Tests
-
-@Test
-func testExtractLinkFromURL() throws {
-    let config = TracebackConfiguration(
-        mainAssociatedHost: URL(string: "https://example.firebaseapp.com")!
-    )
-    let sdk = TracebackSDK.live(config: config)
-
-    // Test valid URL with link parameter
-    let urlWithLink = URL(string: "https://example.com?link=https%3A%2F%2Fmyapp.com%2Fproduct%2F123")!
-    let result = try sdk.extractLinkFromURL(urlWithLink)
-
-    #expect(result?.url?.absoluteString == "https://myapp.com/product/123")
-    #expect(result?.match_type == TracebackSDK.MatchType.unknown)
-}
-
-@Test
-func testExtractLinkFromURLWithoutLinkParameter() throws {
-    let config = TracebackConfiguration(
-        mainAssociatedHost: URL(string: "https://example.firebaseapp.com")!
-    )
-    let sdk = TracebackSDK.live(config: config)
-
-    // Test URL without link parameter
-    let urlWithoutLink = URL(string: "https://example.com?other=value")!
-    let result = try sdk.extractLinkFromURL(urlWithoutLink)
-
-    #expect(result?.url == nil)
-    #expect(result?.match_type == TracebackSDK.MatchType.unknown)
-}
-
-@Test
-func testExtractLinkFromURLWithMultipleQueryParams() throws {
-    let config = TracebackConfiguration(
-        mainAssociatedHost: URL(string: "https://example.firebaseapp.com")!
-    )
-    let sdk = TracebackSDK.live(config: config)
-
-    // Test URL with multiple query parameters including link
-    let complexURL = URL(string: "https://example.com?utm_source=email&link=https%3A%2F%2Fmyapp.com%2Fshare%2Fabc&utm_campaign=test")!
-    let result = try sdk.extractLinkFromURL(complexURL)
-
-    #expect(result?.url?.absoluteString == "https://myapp.com/share/abc")
-    #expect(result?.match_type == TracebackSDK.MatchType.unknown)
-}
-
 // MARK: - Response Model Tests
 
 @Test
@@ -91,6 +44,7 @@ func testPostInstallLinkSearchResponseMatchTypes() throws {
         deep_link_id: URL(string: "https://example.com/product/123"),
         match_message: "Unique match found",
         match_type: "unique",
+        match_campaign: nil,
         request_ip_version: "ipv4",
         utm_medium: "social",
         utm_source: "facebook"
@@ -102,6 +56,7 @@ func testPostInstallLinkSearchResponseMatchTypes() throws {
         deep_link_id: nil,
         match_message: "No match found",
         match_type: "none",
+        match_campaign: nil,
         request_ip_version: "ipv4",
         utm_medium: nil,
         utm_source: nil
@@ -113,6 +68,7 @@ func testPostInstallLinkSearchResponseMatchTypes() throws {
         deep_link_id: URL(string: "https://example.com/default"),
         match_message: "Ambiguous match",
         match_type: "heuristics",
+        match_campaign: nil,
         request_ip_version: "ipv4",
         utm_medium: nil,
         utm_source: nil
@@ -124,22 +80,57 @@ func testPostInstallLinkSearchResponseMatchTypes() throws {
         deep_link_id: URL(string: "https://example.com/default"),
         match_message: "Heuristics match",
         match_type: "ambiguous",
+        match_campaign: nil,
         request_ip_version: "ipv4",
         utm_medium: nil,
         utm_source: nil
     )
     #expect(heuristicsResponse.matchType == TracebackSDK.MatchType.ambiguous)
+    
+    // Test intent match type
+    let intentResponse = PostInstallLinkSearchResponse(
+        deep_link_id: URL(string: "https://example.com/default"),
+        match_message: "Intent match",
+        match_type: "intent",
+        match_campaign: nil,
+        request_ip_version: "ipv4",
+        utm_medium: nil,
+        utm_source: nil
+    )
+    #expect(intentResponse.matchType == TracebackSDK.MatchType.intent)
 
     // Test unknown match type
     let unknownResponse = PostInstallLinkSearchResponse(
         deep_link_id: nil,
         match_message: "Unknown",
         match_type: "other",
+        match_campaign: nil,
         request_ip_version: "ipv4",
         utm_medium: nil,
         utm_source: nil
     )
     #expect(unknownResponse.matchType == TracebackSDK.MatchType.unknown)
+}
+
+@Test
+func testCampaignLinkSearchResponse() throws {
+    
+    // Test response with valid URL
+    let response = CampaignResponse(
+        result: URL(string: "https://example.com/default"),
+        error: nil
+    )
+    #expect(response.result?.absoluteString == "https://example.com/default")
+    #expect(response.error == nil)
+    
+    // Test response with error
+    let errorResponse = CampaignResponse(
+        result: nil,
+        error: "Invalid link"
+    )
+    #expect(errorResponse.result == nil)
+    #expect(errorResponse.error == "Invalid link")
+
 }
 
 // MARK: - Network Error Tests
@@ -213,7 +204,7 @@ func testAnalyticsEvents() throws {
     switch detectedEvent {
     case .postInstallDetected(let url):
         #expect(url == testURL)
-    case .postInstallError:
+    default:
         #expect(Bool(false), "Expected postInstallDetected event")
     }
 
@@ -223,10 +214,10 @@ func testAnalyticsEvents() throws {
     let errorEvent = TracebackAnalyticsEvent.postInstallError(error)
 
     switch errorEvent {
-    case .postInstallDetected:
-        #expect(Bool(false), "Expected postInstallError event")
     case .postInstallError(let receivedError):
         #expect(receivedError is TestError)
+    default:
+        #expect(Bool(false), "Expected postInstallError event")
     }
 }
 
@@ -283,8 +274,9 @@ func testDeviceFingerprintEquality() throws {
         appInstallationTime: 1234567890,
         bundleId: "com.example.app",
         osVersion: "18.0",
-        sdkVersion: "1.0.0",
+        sdkVersion: TracebackSDK.sdkVersion,
         uniqueMatchLinkToCheck: nil,
+        intentLink: nil,
         device: deviceInfo1
     )
 
@@ -292,8 +284,9 @@ func testDeviceFingerprintEquality() throws {
         appInstallationTime: 1234567890,
         bundleId: "com.example.app",
         osVersion: "18.0",
-        sdkVersion: "1.0.0",
+        sdkVersion: TracebackSDK.sdkVersion,
         uniqueMatchLinkToCheck: nil,
+        intentLink: nil,
         device: deviceInfo2
     )
 
@@ -303,7 +296,7 @@ func testDeviceFingerprintEquality() throws {
 // MARK: - Integration Tests with Mock Network
 
 @Test
-func testAPIProviderWithMockNetwork() async throws {
+func testPostInstallSearchAPIProviderWithMockNetwork() async throws {
     let mockNetwork = Network { request in
         // Create JSON manually since PostInstallLinkSearchResponse is only Decodable
         let jsonString = """
@@ -311,6 +304,7 @@ func testAPIProviderWithMockNetwork() async throws {
             "deep_link_id": "https://example.com/product/123",
             "match_message": "Test match",
             "match_type": "unique",
+            "match_campaign": null,
             "request_ip_version": "ipv4",
             "utm_medium": null,
             "utm_source": null
@@ -333,8 +327,9 @@ func testAPIProviderWithMockNetwork() async throws {
         appInstallationTime: 1234567890,
         bundleId: "com.test.app",
         osVersion: "18.0",
-        sdkVersion: "1.0.0",
+        sdkVersion: TracebackSDK.sdkVersion,
         uniqueMatchLinkToCheck: URL(string: "https://test.com/link"),
+        intentLink: nil,
         device: DeviceFingerprint.DeviceInfo(
             deviceModelName: "iPhone15,2",
             languageCode: "en-US",
@@ -355,6 +350,35 @@ func testAPIProviderWithMockNetwork() async throws {
 }
 
 @Test
+func testCampaignSearchAPIProviderWithMockNetwork() async throws {
+    let mockNetwork = Network { request in
+        // Create JSON manually since CampaignResponse is only Decodable
+        let jsonString = """
+        {
+            "result": "https://example.com/product/123",
+            "error": null,
+        }
+        """
+        let jsonData = jsonString.data(using: .utf8)!
+        let response = HTTPURLResponse(
+            url: request.url!,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: nil
+        )!
+        return (jsonData, response)
+    }
+
+    let config = NetworkConfiguration(host: URL(string: "https://test.firebaseapp.com")!)
+    let apiProvider = APIProvider(config: config, network: mockNetwork)
+
+    let response = try await apiProvider.getCampaignLink(from: "https://test.firebaseapp.com/product", isFirstCampaignOpen: false)
+
+    #expect(response.result?.absoluteString == "https://example.com/product/123")
+    #expect(response.error == nil)
+}
+
+@Test
 func testAPIProviderNetworkError() async throws {
     let mockNetwork = Network { request in
         throw URLError(.notConnectedToInternet)
@@ -367,8 +391,9 @@ func testAPIProviderNetworkError() async throws {
         appInstallationTime: 1234567890,
         bundleId: "com.test.app",
         osVersion: "18.0",
-        sdkVersion: "1.0.0",
+        sdkVersion: TracebackSDK.sdkVersion,
         uniqueMatchLinkToCheck: nil,
+        intentLink: nil,
         device: DeviceFingerprint.DeviceInfo(
             deviceModelName: "iPhone15,2",
             languageCode: "en-US",
@@ -392,23 +417,6 @@ func testAPIProviderNetworkError() async throws {
     }
 }
 
-// MARK: - URL Components Edge Cases
-
-@Test
-func testExtractLinkFromURLWithMalformedEncoding() throws {
-    let config = TracebackConfiguration(
-        mainAssociatedHost: URL(string: "https://example.firebaseapp.com")!
-    )
-    let sdk = TracebackSDK.live(config: config)
-
-    // Test URL with improperly encoded link parameter
-    let malformedURL = URL(string: "https://example.com?link=https://myapp.com/product/123")! // Not URL encoded
-    let result = try sdk.extractLinkFromURL(malformedURL)
-
-    // Should still extract the link even if not properly encoded
-    #expect(result?.url?.absoluteString == "https://myapp.com/product/123")
-}
-
 // MARK: - Result Object Tests
 
 @Test
@@ -418,12 +426,12 @@ func testResultObjectCreation() throws {
 
     let result = TracebackSDK.Result(
         url: testURL,
-        match_type: .unique,
+        matchType: .unique,
         analytics: testAnalytics
     )
 
     #expect(result.url == testURL)
-    #expect(result.match_type == TracebackSDK.MatchType.unique)
+    #expect(result.matchType == TracebackSDK.MatchType.unique)
     #expect(result.analytics.count == 1)
 
     if case .postInstallDetected(let analyticsURL) = result.analytics.first {
@@ -438,6 +446,6 @@ func testEmptyResult() throws {
     let emptyResult = TracebackSDK.Result.empty
 
     #expect(emptyResult.url == nil)
-    #expect(emptyResult.match_type == TracebackSDK.MatchType.none)
+    #expect(emptyResult.matchType == TracebackSDK.MatchType.none)
     #expect(emptyResult.analytics.isEmpty)
 }

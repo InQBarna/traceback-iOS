@@ -15,6 +15,7 @@ struct DeviceFingerprint: Codable, Equatable, Sendable {
     let osVersion: String
     let sdkVersion: String
     let uniqueMatchLinkToCheck: URL?
+    let intentLink: URL?
     let device: DeviceInfo
 
     struct DeviceInfo: Codable, Equatable, Sendable {
@@ -33,6 +34,7 @@ struct DeviceFingerprint: Codable, Equatable, Sendable {
 func createDeviceFingerprint(
     system: SystemInfo,
     linkFromClipboard: URL?,
+    linkFromIntent: URL?,
     webviewInfo: WebViewInfo?
 ) -> DeviceFingerprint {
     
@@ -65,6 +67,7 @@ func createDeviceFingerprint(
         osVersion: system.osVersion,
         sdkVersion: system.sdkVersion,
         uniqueMatchLinkToCheck: linkFromClipboard,
+        intentLink: linkFromIntent,
         device: deviceInfo
     )
 }

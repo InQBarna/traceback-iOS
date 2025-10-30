@@ -12,17 +12,20 @@ private let userDefaultsExistingRunKey = "traceback_existingRun"
 
 extension TracebackSDK.Result {
     static var empty: Self {
-        TracebackSDK.Result(url: nil, match_type: .none, analytics: [])
+        TracebackSDK.Result(url: nil, matchType: .none, analytics: [])
     }
 }
 
 final class TracebackSDKImpl {
     private let config: TracebackConfiguration
     private let logger: Logger
+    private let campaignTracker: CampaignTracker
+    private let linkDetectionActor = ValueWaiter<URL>()
 
-    init(config: TracebackConfiguration, logger: Logger) {
+    init(config: TracebackConfiguration, logger: Logger, campaignTracker: CampaignTracker) {
         self.config = config
         self.logger = logger
+        self.campaignTracker = campaignTracker
     }
 
     func detectPostInstallLink() async -> TracebackSDK.Result {
@@ -33,6 +36,10 @@ final class TracebackSDKImpl {
                         "won't continue searching for install link")
             return .empty
         }
+        
+        logger.debug("Waiting for universal link")
+        let linkFromIntent = await linkDetectionActor.waitForValue(timeoutSeconds: 0.5)
+        logger.debug("Got universal link: \(linkFromIntent?.absoluteString ?? "none")")
         
         logger.info("Checking for post-install link")
 
@@ -57,6 +64,7 @@ final class TracebackSDKImpl {
             let fingerprint = await createDeviceFingerprint(
                 system: system,
                 linkFromClipboard: linkFromClipboard,
+                linkFromIntent: linkFromIntent,
                 webviewInfo: webviewInfo
             )
 
@@ -72,60 +80,140 @@ final class TracebackSDKImpl {
 
             let response = try await api.sendFingerprint(fingerprint)
             logger.info("Server responded with match type: \(response.match_type)")
+            logger.debug("Server responded deep link: \(response)")
             
+            // 5. Save checks locally
             UserDefaults.standard.set(true, forKey: userDefaultsExistingRunKey)
             logger.info("Post-install success saved to user defaults \(userDefaultsExistingRunKey)" +
                         " so it is no longer checked")
             
-            if let deep_link_id = response.deep_link_id {
-                return TracebackSDK.Result(
-                    url: response.deep_link_id,
-                    match_type: response.matchType,
-                    analytics: [
-                        .postInstallDetected(deep_link_id)
-                    ]
-                )
-            } else {
-                return TracebackSDK.Result(
-                    url: response.deep_link_id,
-                    match_type: response.matchType,
-                    analytics: []
-                )
+            if let campaign = response.match_campaign {
+                campaignTracker.markCampaignAsSeen(campaign)
+                logger.info("Campaign \(campaign) seen for first time")
             }
+            
+            // 6. Return what we have found
+            return TracebackSDK.Result(
+                url: response.deep_link_id,
+                matchType: response.matchType,
+                analytics: response.deep_link_id.map { [.postInstallDetected($0)] } ?? []
+            )
         } catch {
             logger.error("Failed to detect post-install link: \(error.localizedDescription)")
             return TracebackSDK.Result(
                 url: nil,
-                match_type: .none,
+                matchType: .none,
                 analytics: [
                     .postInstallError(error)
                 ]
             )
         }
     }
-
     
-    func extractLink(from: URL) throws -> TracebackSDK.Result {
+    func getCampaignLink(from url: URL) async -> TracebackSDK.Result {
+        do {
+            logger.info("Get campaign link")
+            
+            // 1. Check if first run, if not save link and continue
+            guard UserDefaults.standard.bool(forKey: userDefaultsExistingRunKey) else {
+                logger.info("Do not get campaign link on first run, do it via postInstallSearch")
+                await linkDetectionActor.provideValue(url)
+                return .empty
+            }
+            
+            // 2. Extract campaign from url
+            let campaign = extractCampaign(from: url)
+            
+            // 3. If no campaign, process locally
+            guard let campaign else {
+                logger.info("The link does not have a campaign, treat locally as intent")
+                let deeplink = try? extractLink(from: url)
+                
+                return TracebackSDK.Result(
+                    url: deeplink,
+                    matchType: .intent,
+                    analytics: []
+                )
+            }
+            
+            // 3. Get campaign resolution from backend
+            let api = APIProvider(
+                config: NetworkConfiguration(
+                    host: config.mainAssociatedHost
+                ),
+                network: Network.live
+            )
+            
+            logger.info("Getting campaign deeplink remotely for campaign \(campaign)")
+            
+            let isFirstCampaignOpen = campaignTracker.isFirstTimeSeen(campaign)
+            logger.debug("Campaign \(campaign) first open \(isFirstCampaignOpen)")
+            
+            let response = try await api.getCampaignLink(from: url.absoluteString, isFirstCampaignOpen: isFirstCampaignOpen)
+            logger.info("Server responded with link: \(String(describing: response.result))")
+            
+            guard
+                let deeplink = response.result
+            else {
+                return .empty
+            }
+            
+            return TracebackSDK.Result(
+                url: deeplink,
+                matchType: .intent,
+                analytics: [
+                    .campaignResolved(deeplink)
+                ]
+            )
+        } catch {
+            logger.error("Failed to resolve campaign link: \(error.localizedDescription)")
+            return TracebackSDK.Result(
+                url: nil,
+                matchType: .none,
+                analytics: [
+                    .campaignError(error)
+                ]
+            )
+        }
+    }
 
-        guard let components = URLComponents(url: from, resolvingAgainstBaseURL: false) else {
+    /// Parses the url that triggered app launch and extracts the real expected url to be opened
+    ///
+    /// @Discussion When a specific content is expected to be opened inside the application. The real url
+    /// defining the content is not allways plain visible in the url which opened the app, since we need to build
+    /// a url that is valid for all platforms, and for installation path. This method extracts the real url to be
+    /// opened.
+    private func extractLink(from url: URL) throws -> URL? {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
             throw TracebackError.ExtractLink.invalidURL
         }
+        
         for queryItem in components.queryItems ?? [] {
             if queryItem.name == "link",
                let value = queryItem.value,
                let url = URL(string: value) {
-                return TracebackSDK.Result(
-                    url: url,
-                    match_type: .unknown,
-                    analytics: []
-                )
+                return url
             }
         }
-        return TracebackSDK.Result(
-            url: nil,
-            match_type: .unknown,
-            analytics: []
-        )
+        
+        return nil
+    }
+    
+    /// Parses the campaign from a Traceback URL, which is the path of the Traceback URL
+    private func extractCampaign(from url: URL) -> String? {
+        let path = url.path
+        if path.count > 1 {
+            return String(path.dropFirst())
+        }
+        return nil
+    }
+    
+    /// Determines whether a URL should be processed by Traceback or not based on the configured domains
+    func isTracebackURL(_ url: URL) -> Bool {
+        guard let host = url.host else { return false }
+        
+        return host == config.mainAssociatedHost.host ||
+        (config.associatedHosts?.contains(where: { $0.host == host }) ?? false)
     }
     
     @MainActor
