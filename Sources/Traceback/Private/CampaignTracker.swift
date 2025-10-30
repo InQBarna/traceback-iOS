@@ -8,8 +8,12 @@
 import Foundation
 
 class CampaignTracker {
-    private let userDefaults = UserDefaults.standard
+    private let userDefaults: UserDefaults
     private let seenCampaignsKey = "seenCampaigns"
+
+    init(userDefaults: UserDefaults = .standard) {
+        self.userDefaults = userDefaults
+    }
     
     // Get all seen campaigns
     private func getSeenCampaigns() -> Set<String> {

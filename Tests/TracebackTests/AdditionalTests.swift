@@ -35,53 +35,6 @@ func testTracebackConfigurationDefaults() throws {
     #expect(config.logLevel == .info)
 }
 
-// MARK: - URL Extraction Tests
-
-//@Test
-//func testExtractLinkFromURL() throws {
-//    let config = TracebackConfiguration(
-//        mainAssociatedHost: URL(string: "https://example.firebaseapp.com")!
-//    )
-//    let sdk = TracebackSDK.live(config: config)
-//
-//    // Test valid URL with link parameter
-//    let urlWithLink = URL(string: "https://example.com?link=https%3A%2F%2Fmyapp.com%2Fproduct%2F123")!
-//    let result = try sdk.extractLinkFromURL(urlWithLink)
-//
-//    #expect(result?.url?.absoluteString == "https://myapp.com/product/123")
-//    #expect(result?.matchType == TracebackSDK.MatchType.unknown)
-//}
-//
-//@Test
-//func testExtractLinkFromURLWithoutLinkParameter() throws {
-//    let config = TracebackConfiguration(
-//        mainAssociatedHost: URL(string: "https://example.firebaseapp.com")!
-//    )
-//    let sdk = TracebackSDK.live(config: config)
-//
-//    // Test URL without link parameter
-//    let urlWithoutLink = URL(string: "https://example.com?other=value")!
-//    let result = try sdk.extractLinkFromURL(urlWithoutLink)
-//
-//    #expect(result?.url == nil)
-//    #expect(result?.matchType == TracebackSDK.MatchType.unknown)
-//}
-//
-//@Test
-//func testExtractLinkFromURLWithMultipleQueryParams() throws {
-//    let config = TracebackConfiguration(
-//        mainAssociatedHost: URL(string: "https://example.firebaseapp.com")!
-//    )
-//    let sdk = TracebackSDK.live(config: config)
-//
-//    // Test URL with multiple query parameters including link
-//    let complexURL = URL(string: "https://example.com?utm_source=email&link=https%3A%2F%2Fmyapp.com%2Fshare%2Fabc&utm_campaign=test")!
-//    let result = try sdk.extractLinkFromURL(complexURL)
-//
-//    #expect(result?.url?.absoluteString == "https://myapp.com/share/abc")
-//    #expect(result?.matchType == TracebackSDK.MatchType.unknown)
-//}
-
 // MARK: - Response Model Tests
 
 @Test
@@ -434,23 +387,6 @@ func testAPIProviderNetworkError() async throws {
         }
     }
 }
-
-// MARK: - URL Components Edge Cases
-
-//@Test
-//func testExtractLinkFromURLWithMalformedEncoding() throws {
-//    let config = TracebackConfiguration(
-//        mainAssociatedHost: URL(string: "https://example.firebaseapp.com")!
-//    )
-//    let sdk = TracebackSDK.live(config: config)
-//
-//    // Test URL with improperly encoded link parameter
-//    let malformedURL = URL(string: "https://example.com?link=https://myapp.com/product/123")! // Not URL encoded
-//    let result = try sdk.extractLinkFromURL(malformedURL)
-//
-//    // Should still extract the link even if not properly encoded
-//    #expect(result?.url?.absoluteString == "https://myapp.com/product/123")
-//}
 
 // MARK: - Result Object Tests
 
