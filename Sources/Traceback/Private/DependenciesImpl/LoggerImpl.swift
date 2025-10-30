@@ -18,14 +18,14 @@ extension Logger {
         return Logger(
             info: { message in
                 guard level == .info || level == .debug else { return }
-                logger.info("[Traceback] \(message(), privacy: .public)")
+                logger.info("\(message(), privacy: .public)")
             },
             debug: { message in
                 guard level == .debug else { return }
-                logger.debug("[Traceback] \(message(), privacy: .public)")
+                logger.debug("\(message(), privacy: .public)")
             },
             error: { message in
-                logger.error("[Traceback] \(message(), privacy: .public)")
+                logger.error("\(message(), privacy: .public)")
             }
         )
     }

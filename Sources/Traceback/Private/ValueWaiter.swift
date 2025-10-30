@@ -5,7 +5,7 @@ actor ValueWaiter<T: Sendable> {
     private var continuation: CheckedContinuation<T?, Never>?
     private var alreadyCalled = false
 
-    func waitForValue(timeout: TimeInterval) async -> T? {
+    func waitForValue(timeoutSeconds: TimeInterval) async -> T? {
         assert(!alreadyCalled)
         alreadyCalled = true
         if let pendingValue = self.pendingValue {
@@ -15,7 +15,7 @@ actor ValueWaiter<T: Sendable> {
         return await withCheckedContinuation { continuation in
             self.continuation = continuation
             Task {
-                try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+                try? await Task.sleep(nanoseconds: UInt64(timeoutSeconds * 1_000_000_000))
                 self.timeoutExpired()
             }
         }

@@ -38,7 +38,7 @@ final class TracebackSDKImpl {
         }
         
         logger.debug("Waiting for universal link")
-        let linkFromIntent = await linkDetectionActor.waitForValue(timeout: 0.5)
+        let linkFromIntent = await linkDetectionActor.waitForValue(timeoutSeconds: 0.5)
         logger.debug("Got universal link: \(linkFromIntent?.absoluteString ?? "none")")
         
         logger.info("Checking for post-install link")

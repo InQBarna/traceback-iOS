@@ -9,7 +9,7 @@ import Foundation
 
 class CampaignTracker {
     private let userDefaults: UserDefaults
-    private let seenCampaignsKey = "seenCampaigns"
+    private let seenCampaignsKey = "_traceback_seen_campaigns"
 
     init(userDefaults: UserDefaults = .standard) {
         self.userDefaults = userDefaults
