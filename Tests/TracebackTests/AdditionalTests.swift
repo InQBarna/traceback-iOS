@@ -274,7 +274,7 @@ func testDeviceFingerprintEquality() throws {
         appInstallationTime: 1234567890,
         bundleId: "com.example.app",
         osVersion: "18.0",
-        sdkVersion: "1.0.0",
+        sdkVersion: TracebackSDK.sdkVersion,
         uniqueMatchLinkToCheck: nil,
         intentLink: nil,
         device: deviceInfo1
@@ -284,7 +284,7 @@ func testDeviceFingerprintEquality() throws {
         appInstallationTime: 1234567890,
         bundleId: "com.example.app",
         osVersion: "18.0",
-        sdkVersion: "1.0.0",
+        sdkVersion: TracebackSDK.sdkVersion,
         uniqueMatchLinkToCheck: nil,
         intentLink: nil,
         device: deviceInfo2
@@ -296,7 +296,7 @@ func testDeviceFingerprintEquality() throws {
 // MARK: - Integration Tests with Mock Network
 
 @Test
-func testAPIProviderWithMockNetwork() async throws {
+func testPostInstallSearchAPIProviderWithMockNetwork() async throws {
     let mockNetwork = Network { request in
         // Create JSON manually since PostInstallLinkSearchResponse is only Decodable
         let jsonString = """
@@ -327,7 +327,7 @@ func testAPIProviderWithMockNetwork() async throws {
         appInstallationTime: 1234567890,
         bundleId: "com.test.app",
         osVersion: "18.0",
-        sdkVersion: "1.0.0",
+        sdkVersion: TracebackSDK.sdkVersion,
         uniqueMatchLinkToCheck: URL(string: "https://test.com/link"),
         intentLink: nil,
         device: DeviceFingerprint.DeviceInfo(
@@ -350,6 +350,35 @@ func testAPIProviderWithMockNetwork() async throws {
 }
 
 @Test
+func testCampaignSearchAPIProviderWithMockNetwork() async throws {
+    let mockNetwork = Network { request in
+        // Create JSON manually since CampaignResponse is only Decodable
+        let jsonString = """
+        {
+            "result": "https://example.com/product/123",
+            "error": null,
+        }
+        """
+        let jsonData = jsonString.data(using: .utf8)!
+        let response = HTTPURLResponse(
+            url: request.url!,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: nil
+        )!
+        return (jsonData, response)
+    }
+
+    let config = NetworkConfiguration(host: URL(string: "https://test.firebaseapp.com")!)
+    let apiProvider = APIProvider(config: config, network: mockNetwork)
+
+    let response = try await apiProvider.getCampaignLink(from: "https://test.firebaseapp.com/product", isFirstCampaignOpen: false)
+
+    #expect(response.result?.absoluteString == "https://example.com/product/123")
+    #expect(response.error == nil)
+}
+
+@Test
 func testAPIProviderNetworkError() async throws {
     let mockNetwork = Network { request in
         throw URLError(.notConnectedToInternet)
@@ -362,7 +391,7 @@ func testAPIProviderNetworkError() async throws {
         appInstallationTime: 1234567890,
         bundleId: "com.test.app",
         osVersion: "18.0",
-        sdkVersion: "1.0.0",
+        sdkVersion: TracebackSDK.sdkVersion,
         uniqueMatchLinkToCheck: nil,
         intentLink: nil,
         device: DeviceFingerprint.DeviceInfo(
