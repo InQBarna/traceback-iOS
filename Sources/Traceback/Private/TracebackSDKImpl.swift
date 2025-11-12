@@ -167,9 +167,7 @@ final class TracebackSDKImpl {
             let response = try await api.getCampaignLink(from: url.absoluteString, isFirstCampaignOpen: isFirstCampaignOpen)
             logger.info("Server responded with link: \(String(describing: response.result))")
             
-            guard
-                let deeplink = response.result
-            else {
+            guard let deeplink = response.result else {
                 return .empty
             }
             
