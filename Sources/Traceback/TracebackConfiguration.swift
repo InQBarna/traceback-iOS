@@ -15,6 +15,8 @@ public enum TracebackAnalyticsEvent: Sendable {
     case postInstallError(Error)
     /// A get-campaign content url has been resolved
     case campaignResolved(URL)
+    /// A get-campaign content url has been resolved locally
+    case campaignResolvedLocally(URL)
     /// A get-campaign content url failure
     case campaignError(Error)
 }

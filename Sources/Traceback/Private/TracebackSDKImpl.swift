@@ -111,6 +111,12 @@ final class TracebackSDKImpl {
     }
     
     func getCampaignLink(from url: URL) async -> TracebackSDK.Result {
+        
+        guard isTracebackURL(url) else {
+            logger.info("The provided url is not a traceback url, ignoring")
+            return .empty
+        }
+        
         do {
             logger.info("Get campaign link")
             
@@ -126,13 +132,22 @@ final class TracebackSDKImpl {
             
             // 3. If no campaign, process locally
             guard let campaign else {
-                logger.info("The link does not have a campaign, treat locally as intent")
-                let deeplink = try? extractLink(from: url)
+                logger.info("The link does not have a campaign, treat locally")
+                
+                guard let deeplink = extractLink(from: url) else {
+                    logger.info("No deeplink found in the url, returning empty result")
+                    return .empty
+                }
+                
+                logger.info("Deeplink found in the url, returning intent result")
+                logger.debug("Deeplink extracted from url: \(deeplink.absoluteString)")
                 
                 return TracebackSDK.Result(
                     url: deeplink,
                     matchType: .intent,
-                    analytics: []
+                    analytics: [
+                        .campaignResolvedLocally(deeplink)
+                    ]
                 )
             }
             
@@ -183,9 +198,9 @@ final class TracebackSDKImpl {
     /// defining the content is not allways plain visible in the url which opened the app, since we need to build
     /// a url that is valid for all platforms, and for installation path. This method extracts the real url to be
     /// opened.
-    private func extractLink(from url: URL) throws -> URL? {
+    private func extractLink(from url: URL) -> URL? {
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
-            throw TracebackError.ExtractLink.invalidURL
+            return nil
         }
         
         for queryItem in components.queryItems ?? [] {

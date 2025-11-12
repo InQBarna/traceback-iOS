@@ -16,12 +16,6 @@ public enum NetworkError: Swift.Error, Equatable, Sendable {
 
 /// Used to diagnose traceback's sdk errors
 enum TracebackError: Error {
-    /// Indicates the url that triggered app opening is an invalid URL
-    enum ExtractLink: Error {
-        case invalidURL
-    }
-    /// Indicates an error from the URL that triggered app opening
-    case extractLink(ExtractLink)
     /// Indicates a network error
     case network(NetworkError)
     /// Indicates an internal error, please refer to github issues
