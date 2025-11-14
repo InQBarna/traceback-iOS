@@ -41,6 +41,9 @@ final class TracebackSDKImpl {
         let linkFromIntent = await linkDetectionActor.waitForValue(timeoutSeconds: 0.5)
         logger.debug("Got universal link: \(linkFromIntent?.absoluteString ?? "none")")
         
+        let extractedLinkFromIntent = linkFromIntent.flatMap { extractLink(from: $0) }
+        logger.debug("Extracted link from intent: \(extractedLinkFromIntent?.absoluteString ?? "none")")
+        
         logger.info("Checking for post-install link")
 
         do {
@@ -51,7 +54,7 @@ final class TracebackSDKImpl {
 
             // 2. Try to read a link from clipboard
             let linkFromClipboard: URL?
-            if config.useClipboard {
+            if config.useClipboard, extractedLinkFromIntent == nil {
                 linkFromClipboard = UIPasteboard.general.url
                 UIPasteboard.general.string = ""
             } else {
@@ -92,12 +95,28 @@ final class TracebackSDKImpl {
                 logger.info("Campaign \(campaign) seen for first time")
             }
             
-            // 6. Return what we have found
-            return TracebackSDK.Result(
-                url: response.deep_link_id,
-                matchType: response.matchType,
-                analytics: response.deep_link_id.map { [.postInstallDetected($0)] } ?? []
-            )
+            if let linkFromIntent, let intentCampaign = extractCampaign(from: linkFromIntent) {
+                campaignTracker.markCampaignAsSeen(intentCampaign)
+                logger.info("Intent Campaign \(intentCampaign) seen for first time")
+            }
+            
+            // 6. Return what we have found (prioritize intent link if available)
+            if let extractedLinkFromIntent {
+                return TracebackSDK.Result(
+                    url: extractedLinkFromIntent,
+                    matchType: .intent,
+                    analytics: [
+                        response.deep_link_id.map { .postInstallDetected($0) },
+                        .campaignResolvedLocally(extractedLinkFromIntent)
+                    ].compactMap { $0 }
+                )
+            } else {
+                return TracebackSDK.Result(
+                    url: response.deep_link_id,
+                    matchType: response.matchType,
+                    analytics: response.deep_link_id.map { [.postInstallDetected($0)] } ?? []
+                )
+            }
         } catch {
             logger.error("Failed to detect post-install link: \(error.localizedDescription)")
             return TracebackSDK.Result(
@@ -111,7 +130,6 @@ final class TracebackSDKImpl {
     }
     
     func getCampaignLink(from url: URL) async -> TracebackSDK.Result {
-        
         guard isTracebackURL(url) else {
             logger.info("The provided url is not a traceback url, ignoring")
             return .empty
