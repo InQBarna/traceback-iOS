@@ -169,7 +169,7 @@ final class TracebackSDKImpl {
                 )
             }
             
-            // 3. Get campaign resolution from backend
+            // 4. Get campaign resolution from backend
             let api = APIProvider(
                 config: NetworkConfiguration(
                     host: config.mainAssociatedHost
