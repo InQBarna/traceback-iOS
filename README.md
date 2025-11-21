@@ -28,7 +28,7 @@ import Traceback
 /* ... */
 lazy var traceback: TracebackSDK = {
     let config = TracebackConfiguration(
-        mainAssociatedHost: "https://my-firebase-project-traceback.firebaseapp.com",
+        mainAssociatedHost: URL(string: "https://your-project-traceback.firebaseapp.com")!,
         useClipboard: true,
         logLevel: .error
     )
