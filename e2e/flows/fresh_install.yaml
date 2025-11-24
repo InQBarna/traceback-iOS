@@ -1,0 +1,7 @@
+# fresh_install.yaml
+
+appId: ${BUNDLE_ID}
+---
+- launchApp
+- tapOn: "Allow paste"
+- assertVisible: ${CAMPAIGN_URL}
