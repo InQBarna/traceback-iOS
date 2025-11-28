@@ -1,0 +1,10 @@
+# flow.yaml
+
+appId: com.apple.mobilesafari
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "OPEN"
+    timeout: 10000
+- tapOn: "OPEN"
+- tapOn: "OK"
