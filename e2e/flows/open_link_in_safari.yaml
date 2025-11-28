@@ -3,9 +3,6 @@
 appId: com.apple.mobilesafari
 ---
 - launchApp
-- tapOn: "Address"
-- inputText: ${CAMPAIGN_URL}
-- tapOn: "Ir"
 - extendedWaitUntil:
     visible: "OPEN"
     timeout: 10000

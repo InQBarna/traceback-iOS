@@ -4,4 +4,6 @@ appId: ${BUNDLE_ID}
 ---
 - launchApp
 - tapOn: "Allow paste"
-- assertVisible: ${CAMPAIGN_URL}
+- assertVisible:
+    text: ${DESTINATION_URL}
+    index: 0
