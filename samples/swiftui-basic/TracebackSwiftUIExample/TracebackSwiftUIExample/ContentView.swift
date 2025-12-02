@@ -12,35 +12,34 @@ struct ContentView: View {
     @EnvironmentObject var appState: AppState
 
     var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Status section
-                    statusSection
-                    
-                    // Current route display
-                    currentRouteSection
-                    
-                    // Analytics events
-                    analyticsSection
-                    
-                    Spacer()
-                    
-                    // Instructions
-                    instructionsSection
-                }
-                .padding()
+        ScrollView {
+            VStack(spacing: 20) {
+                Text("Debug Status")
+                    .font(.headline)
+                // Status section
+                statusSection
+                
+                // Current route display
+                currentRouteSection
+                
+                // Analytics events
+                analyticsSection
+                
+                Spacer()
+                
+                // Instructions
+                instructionsSection
             }
-            .navigationTitle("Traceback Sample")
-            .onAppear {
-                Task {
-                    await appState.checkPostInstallLink()
-                }
+            .padding()
+        }
+        .onAppear {
+            Task {
+                await appState.checkPostInstallLink()
             }
-            .onOpenURL { url in
-                Task {
-                    await appState.handleOpenURL(url)
-                }
+        }
+        .onOpenURL { url in
+            Task {
+                await appState.handleOpenURL(url)
             }
         }
     }
@@ -49,9 +48,7 @@ struct ContentView: View {
 
     private var statusSection: some View {
         VStack(spacing: 8) {
-            Text("Debug Status")
-                .font(.headline)
-            Text(appState.debugMessage)
+            Text(verbatim: appState.debugMessage)
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)

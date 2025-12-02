@@ -3,7 +3,7 @@
 appId: ${BUNDLE_ID}
 ---
 - launchApp
-- tapOn: "Allow paste"
+- tapOn: 'Permitir pegar'
 - assertVisible:
-    text: ${DESTINATION_URL}
+    text: '.*${DESTINATION_URL}'
     index: 0

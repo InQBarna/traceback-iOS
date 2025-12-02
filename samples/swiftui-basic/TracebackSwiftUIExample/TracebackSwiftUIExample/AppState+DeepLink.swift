@@ -22,7 +22,7 @@ extension AppState {
                 handlePostInstallLink(url)
                 sendAnalytics(result.analytics)
             } else {
-                debugMessage = "ℹ️ No post-install link found"
+                debugMessage = "No post-install link found"
             }
         } catch {
             debugMessage = "❌ Post-install check failed: \(error.localizedDescription)"
