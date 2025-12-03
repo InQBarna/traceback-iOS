@@ -16,17 +16,21 @@ struct ContentView: View {
             VStack(spacing: 20) {
                 Text("Debug Status")
                     .font(.headline)
-                // Status section
-                statusSection
-                
+
+                // Display debug message directly in body (not in statusSection) for Maestro visibility
+                Text(appState.debugMessage)
+                    .font(.body)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+
                 // Current route display
                 currentRouteSection
-                
+
                 // Analytics events
                 analyticsSection
-                
+
                 Spacer()
-                
+
                 // Instructions
                 instructionsSection
             }
