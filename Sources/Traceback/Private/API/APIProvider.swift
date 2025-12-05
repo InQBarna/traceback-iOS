@@ -43,7 +43,7 @@ struct APIProvider: Sendable {
         // Add query parameters
         urlComponents?.queryItems = [
             URLQueryItem(name: "link", value: url),
-            URLQueryItem(name: "isFirstCampaignOpen", value: String(isFirstCampaignOpen))
+            URLQueryItem(name: "first_campaign_open", value: String(isFirstCampaignOpen))
         ]
         
         guard let url = urlComponents?.url else {

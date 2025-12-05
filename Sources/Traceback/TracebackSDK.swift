@@ -12,7 +12,7 @@ import Foundation
 ///
 public struct TracebackSDK {
     
-    static let sdkVersion = "iOS/0.5.0"
+    static let sdkVersion = "iOS/0.5.2"
     
     /// Initialization value passed to TracebackSDK.live
     public let configuration: TracebackConfiguration
