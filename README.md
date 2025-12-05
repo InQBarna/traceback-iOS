@@ -29,7 +29,7 @@ import Traceback
 lazy var traceback: TracebackSDK = {
     let config = TracebackConfiguration(
         mainAssociatedHost: URL(string: "https://your-project-traceback.firebaseapp.com")!,
-        useClipboard: true,
+        useClipboard: false,
         logLevel: .error
     )
     return TracebackSDK.live(config: config)
@@ -51,7 +51,7 @@ let config = TracebackConfiguration(
     associatedHosts: [
         URL(string: "https://your-custom-domain.com")!
     ],
-    useClipboard: true,
+    useClipboard: false,
     logLevel: .debug
 )
 ```
@@ -69,35 +69,52 @@ struct PreLandingView: View {
         /* ... */
         .onAppear {
             Task {
-                // 1.- Search for post-install link and proceed if available
-                guard let result = try? await traceback.postInstallSearchLink(),
-                      let tracebackURL = result.url else {
-                    return
+                do {
+                    // 1.- Search for post-install link and proceed if available
+                    let result = try await traceback.postInstallSearchLink()
+                    if let tracebackURL = result.url {
+                        proceed(onOpenURL: tracebackURL)
+                    }
+                } catch {
+                    // Handle error - network issues, configuration problems, etc.
+                    logger.error("Failed to search for post-install link: \(error)")
                 }
-                proceed(onOpenURL: tracebackURL)
             }
         }
         .onOpenURL { url in
             proceed(onOpenURL: url)
         }
     }
-    
+
     // This method is to be called from onOpenURL or after post install link search
-    func proceed(
-        onOpenURL: URL
-    ) {
-        // 2.- Grab the correct url
-        //  URL is either a post-install link (detected after app download on onAppear above),
-        //  or an opened url (direct open in installed app)
-        guard let linkResult = try? traceback.extractLinkFromURL(url),
-              let linkURL = linkResult.url else {
-            return assertionFailure("Could not find a valid traceback/universal url in \(url)")
+    func proceed(onOpenURL url: URL) {
+        // 2.- Check if this is a Traceback URL
+        guard traceback.isTracebackURL(url) else {
+            // Not a Traceback URL, handle it elsewhere
+            handleDeepLink(linkURL)
+            return
         }
-        
-        // 3.- Handle the url, opening the right content indicated by linkURL
-        // Use linkURL to navigate to the appropriate content in your app
-        // You can also access linkResult.analytics for tracking purposes
-        YOUR CODE HERE
+
+        Task {
+            do {
+                // 3.- Check if dynamic campaign link exists (resolves the deep link from the URL)
+                let linkResult = try await traceback.campaignSearchLink(url)
+
+                guard let linkURL = linkResult.url else {
+                    // No deep link found in this URL, so we normally continue opening the app Landing screen
+                    return
+                }
+
+                // 4.- Handle the url, opening the right content indicated by linkURL
+                // Use linkURL to navigate to the appropriate content in your app
+                // You can also access linkResult.analytics for tracking purposes
+                handleDeepLink(linkURL)
+                sendAnalytics(linkResult.analytics)
+            } catch {
+                // Handle error - network issues, invalid URL, etc.
+                logger.error("Failed to resolve campaign link: \(error)")
+            }
+        }
     }
 }
 ```
@@ -114,13 +131,17 @@ class YourAppDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil
     ) -> Bool {
         Task {
-            // 1.- Trigger a search for installation links
-            //  if a link is found successfully, it will be sent to proceed(openURL:) below
-            guard let result = try? await traceback.postInstallSearchLink(),
-                  let tracebackURL = result.url else {
-                return
+            do {
+                // 1.- Trigger a search for installation links
+                //  if a link is found successfully, it will be sent to proceed(openURL:) below
+                let result = try await traceback.postInstallSearchLink()
+                if let tracebackURL = result.url {
+                    proceed(onOpenURL: tracebackURL)
+                }
+            } catch {
+                // Handle error - network issues, configuration problems, etc.
+                logger.error("Failed to search for post-install link: \(error)")
             }
-            proceed(onOpenURL: tracebackURL)
         }
         return true
     }
@@ -135,23 +156,36 @@ class YourAppDelegate: NSObject, UIApplicationDelegate {
         proceed(onOpenURL: url)
         return true
     }
-    
+
     // This method is to be called from application(open:options:) or after post install link search
-    func proceed(
-        onOpenURL: URL
-    ) {
-        // 2.- Grab the correct url
-        //  URL is either a post-install link (detected after app launch above),
-        //  or an opened url (direct open in installed app)
-        guard let linkResult = try? traceback.extractLinkFromURL(url),
-              let linkURL = linkResult.url else {
-            return assertionFailure("Could not find a valid traceback/universal url in \(url)")
+    func proceed(onOpenURL url: URL) {
+        // 2.- Check if this is a Traceback URL
+        guard traceback.isTracebackURL(url) else {
+            // Not a Traceback URL, handle it elsewhere
+            handleDeepLink(linkURL)
+            return
         }
-        
-        // 3.- Handle the url, opening the right content indicated by linkURL
-        // Use linkURL to navigate to the appropriate content in your app
-        // You can also access linkResult.analytics for tracking purposes
-        YOUR CODE HERE
+
+        Task {
+            do {
+                // 3.- Check if dynamic campaign link exists (resolves the deep link from the URL)
+                let linkResult = try await traceback.campaignSearchLink(url)
+
+                guard let linkURL = linkResult.url else {
+                    // No deep link found in this URL, so we normally continue opening the app Landing screen
+                    return
+                }
+
+                // 4.- Handle the url, opening the right content indicated by linkURL
+                // Use linkURL to navigate to the appropriate content in your app
+                // You can also access linkResult.analytics for tracking purposes
+                handleDeepLink(linkURL)
+                sendAnalytics(linkResult.analytics)
+            } catch {
+                // Handle error - network issues, invalid URL, etc.
+                logger.error("Failed to resolve campaign link: \(error)")
+            }
+        }
     }
 }
 ```
@@ -191,12 +225,26 @@ The diagnostics will categorize issues as:
 
 ## API Reference
 
+### TracebackSDK Methods
+
+#### `postInstallSearchLink() async throws -> TracebackSDK.Result`
+Searches for the deep link that triggered the app installation. Call this once during app launch.
+
+#### `campaignSearchLink(_ url: URL) async throws -> TracebackSDK.Result`
+Resolves a Traceback URL opened via Universal Link or custom URL scheme into a deep link.
+
+#### `isTracebackURL(_ url: URL) -> Bool`
+Validates if the given URL matches any of the configured Traceback domains.
+
+#### `performDiagnostics()`
+Runs comprehensive validation of your Traceback configuration and outputs diagnostic information.
+
 ### TracebackSDK.Result
 
-The result object returned by `postInstallSearchLink()` and `extractLinkFromURL()` contains:
+The result object returned by `postInstallSearchLink()` and `campaignSearchLink()` contains:
 
 - `url: URL?` - The extracted deep link URL to navigate to
-- `matchType: MatchType` - How the link was detected (`.unique`, `.heuristics`, `.ambiguous`, `.intent`, `.none`)
+- `matchType: MatchType` - How the link was detected (`.unique`, `.heuristics`, `.ambiguous`, `.intent`, `.none`, `.unknown`)
 - `analytics: [TracebackAnalyticsEvent]` - Analytics events you can send to your preferred platform
 
 ### TracebackConfiguration
@@ -220,7 +268,9 @@ public struct TracebackConfiguration {
 
 ## Error Handling
 
-The SDK uses Swift's error handling mechanisms:
+The SDK uses Swift's error handling mechanisms. Both `postInstallSearchLink()` and `campaignSearchLink()` can throw errors:
+
+### Post-Install Link Search
 
 ```swift
 do {
@@ -228,6 +278,8 @@ do {
     if let url = result.url {
         // Handle successful link detection
         handleDeepLink(url)
+        // Send analytics events
+        sendAnalytics(result.analytics)
     } else {
         // No link found - normal app startup
         handleNormalStartup()
@@ -236,6 +288,26 @@ do {
     // Handle network or configuration errors
     logger.error("Failed to search for post-install link: \(error)")
     handleNormalStartup()
+}
+```
+
+### Campaign Link Resolution
+
+```swift
+do {
+    let result = try await traceback.campaignSearchLink(url)
+    if let deepLink = result.url {
+        // Handle successful link resolution
+        handleDeepLink(deepLink)
+        // Send analytics events
+        sendAnalytics(result.analytics)
+    } else {
+        // URL is valid Traceback URL but no deep link found
+        handleNormalStartup()
+    }
+} catch {
+    // Handle network or configuration errors
+    logger.error("Failed to resolve campaign link: \(error)")
 }
 ```
 

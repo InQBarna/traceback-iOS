@@ -1,0 +1,15 @@
+{
+  "originHash" : "da14aa4c0ceb4370e18b620abeb611396c07bac1e2daf7ae45770f9925eb9b43",
+  "pins" : [
+    {
+      "identity" : "traceback-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/InQBarna/traceback-iOS",
+      "state" : {
+        "revision" : "948d0ef95b2373867b018120841d662fb75a81f4",
+        "version" : "0.5.0"
+      }
+    }
+  ],
+  "version" : 3
+}

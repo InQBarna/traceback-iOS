@@ -1,0 +1,9 @@
+# fresh_install.yaml
+
+appId: ${BUNDLE_ID}
+---
+- launchApp
+- tapOn: 'Permitir pegar'
+- assertVisible:
+    text: '.*${DESTINATION_URL}'
+    index: 0

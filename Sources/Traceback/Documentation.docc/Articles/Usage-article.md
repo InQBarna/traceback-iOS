@@ -25,7 +25,7 @@ import Traceback
 
 let config = TracebackConfiguration(
     mainAssociatedHost: URL(string: "https://my-firebase-project-traceback.firebaseapp.com")!,
-    useClipboard: true,
+    useClipboard: false,
     logLevel: .error
 )
 let traceback = TracebackSDK.live(config: config)
