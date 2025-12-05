@@ -29,7 +29,7 @@ import Traceback
 lazy var traceback: TracebackSDK = {
     let config = TracebackConfiguration(
         mainAssociatedHost: URL(string: "https://your-project-traceback.firebaseapp.com")!,
-        useClipboard: true,
+        useClipboard: false,
         logLevel: .error
     )
     return TracebackSDK.live(config: config)
@@ -51,7 +51,7 @@ let config = TracebackConfiguration(
     associatedHosts: [
         URL(string: "https://your-custom-domain.com")!
     ],
-    useClipboard: true,
+    useClipboard: false,
     logLevel: .debug
 )
 ```

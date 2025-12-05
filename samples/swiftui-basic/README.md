@@ -112,7 +112,7 @@ Open `TracebackSwiftUIExample.xcodeproj` in Xcode and:
      ```swift
      let config = TracebackConfiguration(
          mainAssociatedHost: URL(string: "https://your-project-traceback.firebaseapp.com")!,
-         useClipboard: true,
+         useClipboard: false,
          logLevel: .debug
      )
      ```
@@ -129,7 +129,7 @@ Open `TracebackSwiftUIExample.xcodeproj` in Xcode and:
 
 1. Create a test link in your Traceback extension:
    ```
-   https://your-project-traceback.firebaseapp.com/welcome?link=myapp://products/123
+   https://your-project-traceback.firebaseapp.com/welcome?link=https://mydomain.com/products/123
    ```
 
 2. Copy the link to clipboard
@@ -141,13 +141,13 @@ Open `TracebackSwiftUIExample.xcodeproj` in Xcode and:
 5. The app should:
    - Detect the clipboard link
    - Show "Post-install link detected!"
-   - Display the deep link: `myapp://products/123`
+   - Display the deep link: `https://mydomain.com/products/123`
 
 ### Test Campaign Links (Already Installed)
 
 1. Create a campaign link:
    ```
-   https://your-project-traceback.firebaseapp.com/promo?link=myapp://settings
+   https://your-project-traceback.firebaseapp.com/promo?link=https://mydomain.com/settings
    ```
 
 2. Send the link to yourself via Messages or Email
@@ -157,7 +157,7 @@ Open `TracebackSwiftUIExample.xcodeproj` in Xcode and:
 4. The app should:
    - Resolve the campaign link
    - Show "Campaign link resolved!"
-   - Display the deep link: `myapp://settings`
+   - Display the deep link: `https://mydomain.com/settings`
 
 ### Test Universal Links
 
@@ -212,7 +212,7 @@ The SDK is initialized in `TracebackSwiftUIExampleApp.swift`:
 lazy var traceback: TracebackSDK = {
     let config = TracebackConfiguration(
         mainAssociatedHost: URL(string: "https://your-project-traceback.firebaseapp.com")!,
-        useClipboard: true,
+        useClipboard: false,
         logLevel: .debug
     )
     return TracebackSDK.live(config: config)

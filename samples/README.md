@@ -56,7 +56,7 @@ Use the Traceback Firebase extension to create a test deep link:
 
 ```bash
 # Example: Create a link to open /products/123 in your app
-https://your-project-traceback.firebaseapp.com/campaign-name?link=myapp://products/123
+https://your-project-traceback.firebaseapp.com/campaign-name?link=https://mydomain.com/products/123
 ```
 
 ### Test Post-Install Flow
