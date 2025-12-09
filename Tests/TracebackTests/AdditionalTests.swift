@@ -126,10 +126,10 @@ func testCampaignLinkSearchResponse() throws {
     // Test response with error
     let errorResponse = CampaignResponse(
         result: nil,
-        error: "Invalid link"
+        error: "No campaign found"
     )
     #expect(errorResponse.result == nil)
-    #expect(errorResponse.error == "Invalid link")
+    #expect(errorResponse.error == "No campaign found")
 
 }
 

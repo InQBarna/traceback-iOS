@@ -9,4 +9,5 @@ import Foundation
 
 struct CampaignResponse: Decodable, Equatable, Sendable {
     let result: URL?
+    let error: String?
 }
