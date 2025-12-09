@@ -29,20 +29,31 @@ final class TracebackSDKImpl {
     }
 
     func detectPostInstallLink() async -> TracebackSDK.Result {
-        logger.info("Checking for previous post-install link successes")
+        logger.info("Checking for previous post-install link calls")
         
         guard !UserDefaults.standard.bool(forKey: userDefaultsExistingRunKey) else {
-            logger.info("Previous post-install link succes detected, " +
+            logger.info("Previous post-install link call detected, " +
                         "won't continue searching for install link")
             return .empty
         }
         
-        logger.debug("Waiting for universal link")
-        let linkFromIntent = await linkDetectionActor.waitForValue(timeoutSeconds: 0.5)
-        logger.debug("Got universal link: \(linkFromIntent?.absoluteString ?? "none")")
+        logger.info("No post-install called previously. Continuing post-install link detection")
         
-        let extractedLinkFromIntent = linkFromIntent.flatMap { extractLink(from: $0) }
-        logger.debug("Extracted link from intent: \(extractedLinkFromIntent?.absoluteString ?? "none")")
+        logger.info("Waiting for universal link")
+        let linkFromIntent = await linkDetectionActor.waitForValue(timeoutSeconds: 0.5)
+        logger.info("Got universal link: \(linkFromIntent?.absoluteString ?? "none")")
+
+        if let linkFromIntent, let intentCampaign = extractCampaign(from: linkFromIntent) {
+            campaignTracker.markCampaignAsSeen(intentCampaign)
+            logger.debug("Intent Campaign \(intentCampaign) seen for first time")
+        }
+
+        let deeplink = linkFromIntent.flatMap { extractLink(from: $0) }
+        logger.debug("Extracted link from intent: \(deeplink?.absoluteString ?? "none")")
+        
+        UserDefaults.standard.set(true, forKey: userDefaultsExistingRunKey)
+        logger.debug("Post-install call saved to user defaults \(userDefaultsExistingRunKey)" +
+                    " so it is no longer checked")
         
         logger.info("Checking for post-install link")
 
@@ -54,7 +65,7 @@ final class TracebackSDKImpl {
 
             // 2. Try to read a link from clipboard
             let linkFromClipboard: URL?
-            if config.useClipboard, extractedLinkFromIntent == nil {
+            if config.useClipboard, deeplink == nil {
                 linkFromClipboard = UIPasteboard.general.url
                 UIPasteboard.general.string = ""
             } else {
@@ -86,28 +97,19 @@ final class TracebackSDKImpl {
             logger.debug("Server responded deep link: \(response)")
             
             // 5. Save checks locally
-            UserDefaults.standard.set(true, forKey: userDefaultsExistingRunKey)
-            logger.info("Post-install success saved to user defaults \(userDefaultsExistingRunKey)" +
-                        " so it is no longer checked")
-            
             if let campaign = response.match_campaign {
                 campaignTracker.markCampaignAsSeen(campaign)
                 logger.info("Campaign \(campaign) seen for first time")
             }
             
-            if let linkFromIntent, let intentCampaign = extractCampaign(from: linkFromIntent) {
-                campaignTracker.markCampaignAsSeen(intentCampaign)
-                logger.info("Intent Campaign \(intentCampaign) seen for first time")
-            }
-            
             // 6. Return what we have found (prioritize intent link if available)
-            if let extractedLinkFromIntent {
+            if let deeplink {
                 return TracebackSDK.Result(
-                    url: extractedLinkFromIntent,
+                    url: deeplink,
                     matchType: .intent,
                     analytics: [
                         response.deep_link_id.map { .postInstallDetected($0) },
-                        .campaignResolvedLocally(extractedLinkFromIntent)
+                        .campaignResolvedLocally(deeplink)
                     ].compactMap { $0 }
                 )
             } else {
@@ -119,13 +121,23 @@ final class TracebackSDKImpl {
             }
         } catch {
             logger.error("Failed to detect post-install link: \(error.localizedDescription)")
-            return TracebackSDK.Result(
-                url: nil,
-                matchType: .none,
-                analytics: [
-                    .postInstallError(error)
-                ]
-            )
+            if let deeplink {
+                return TracebackSDK.Result(
+                    url: deeplink,
+                    matchType: .intent,
+                    analytics: [
+                        .campaignResolvedLocally(deeplink)
+                    ].compactMap { $0 }
+                )
+            } else {
+                return TracebackSDK.Result(
+                    url: nil,
+                    matchType: .none,
+                    analytics: [
+                        .postInstallError(error)
+                    ]
+                )
+            }
         }
     }
     
@@ -135,40 +147,41 @@ final class TracebackSDKImpl {
             return .empty
         }
         
-        do {
-            logger.info("Get campaign link")
+        logger.info("Get campaign link")
+        
+        // 1. Check if first run, if not save link and continue
+        guard UserDefaults.standard.bool(forKey: userDefaultsExistingRunKey) else {
+            logger.info("Do not get campaign link on first run, do it via postInstallSearch")
+            await linkDetectionActor.provideValue(url)
+            return .empty
+        }
+        
+        // 2. Extract link and campaign from url
+        let deeplink = extractLink(from: url)
+        let campaign = extractCampaign(from: url)
+        
+        // 3. If no campaign, process locally
+        guard let campaign else {
+            logger.info("The link does not have a campaign, treat locally")
             
-            // 1. Check if first run, if not save link and continue
-            guard UserDefaults.standard.bool(forKey: userDefaultsExistingRunKey) else {
-                logger.info("Do not get campaign link on first run, do it via postInstallSearch")
-                await linkDetectionActor.provideValue(url)
+            guard let deeplink else {
+                logger.info("No deeplink found in the url either, returning empty result")
                 return .empty
             }
             
-            // 2. Extract campaign from url
-            let campaign = extractCampaign(from: url)
+            logger.info("Deeplink found in the url, returning intent result")
+            logger.debug("Deeplink extracted from url: \(deeplink.absoluteString)")
             
-            // 3. If no campaign, process locally
-            guard let campaign else {
-                logger.info("The link does not have a campaign, treat locally")
-                
-                guard let deeplink = extractLink(from: url) else {
-                    logger.info("No deeplink found in the url, returning empty result")
-                    return .empty
-                }
-                
-                logger.info("Deeplink found in the url, returning intent result")
-                logger.debug("Deeplink extracted from url: \(deeplink.absoluteString)")
-                
-                return TracebackSDK.Result(
-                    url: deeplink,
-                    matchType: .intent,
-                    analytics: [
-                        .campaignResolvedLocally(deeplink)
-                    ]
-                )
-            }
-            
+            return TracebackSDK.Result(
+                url: deeplink,
+                matchType: .intent,
+                analytics: [
+                    .campaignResolvedLocally(deeplink)
+                ]
+            )
+        }
+        
+        do {
             // 4. Get campaign resolution from backend
             let api = APIProvider(
                 config: NetworkConfiguration(
@@ -185,26 +198,48 @@ final class TracebackSDKImpl {
             let response = try await api.getCampaignLink(from: url.absoluteString, isFirstCampaignOpen: isFirstCampaignOpen)
             logger.info("Server responded with link: \(String(describing: response.result))")
             
-            guard let deeplink = response.result else {
-                return .empty
+            // 6. Return what we have found (prioritize intent link if available)
+            if let deeplink {
+                return TracebackSDK.Result(
+                    url: deeplink,
+                    matchType: .intent,
+                    analytics: [
+                        response.result.map { .campaignResolved($0) },
+                        .campaignResolvedLocally(deeplink)
+                    ].compactMap { $0 }
+                )
+            } else {
+                guard let resolvedLink = response.result else {
+                    return .empty
+                }
+                
+                return TracebackSDK.Result(
+                    url: resolvedLink,
+                    matchType: .intent,
+                    analytics: [
+                        .campaignResolved(resolvedLink)
+                    ]
+                )
             }
-            
-            return TracebackSDK.Result(
-                url: deeplink,
-                matchType: .intent,
-                analytics: [
-                    .campaignResolved(deeplink)
-                ]
-            )
         } catch {
             logger.error("Failed to resolve campaign link: \(error.localizedDescription)")
-            return TracebackSDK.Result(
-                url: nil,
-                matchType: .none,
-                analytics: [
-                    .campaignError(error)
-                ]
-            )
+            if let deeplink {
+                return TracebackSDK.Result(
+                    url: deeplink,
+                    matchType: .intent,
+                    analytics: [
+                        .campaignResolvedLocally(deeplink)
+                    ].compactMap { $0 }
+                )
+            } else {
+                return TracebackSDK.Result(
+                    url: nil,
+                    matchType: .none,
+                    analytics: [
+                        .campaignError(error)
+                    ]
+                )
+            }
         }
     }
 
