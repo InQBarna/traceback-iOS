@@ -7,6 +7,8 @@
 #   ./build-and-run.sh "iPhone 15 Pro"
 #   ./build-and-run.sh "iPhone 15 Pro" /path/to/TracebackSwiftUIExample.xcodeproj
 #   ./build-and-run.sh  # Uses defaults
+#
+# The scheme is automatically detected from the project
 
 set -e  # Exit on error
 
@@ -19,7 +21,6 @@ NC='\033[0m' # No Color
 # Default values
 DEFAULT_DEVICE="iPhone 15 Pro"
 DEFAULT_PROJECT_PATH="swiftui-basic/TracebackSwiftUIExample/TracebackSwiftUIExample.xcodeproj"
-SCHEME_NAME="TracebackSwiftUIExample"
 
 # Parse arguments
 DEVICE_NAME="${1:-$DEFAULT_DEVICE}"
@@ -44,9 +45,21 @@ if [ ! -d "$PROJECT_PATH" ]; then
     exit 1
 fi
 
+# Auto-detect scheme from project
+print_info "Detecting scheme from project..."
+SCHEME_NAME=$(xcodebuild -list -project "$PROJECT_PATH" 2>/dev/null | grep -A 100 "Schemes:" | grep -v "Schemes:" | head -n 1 | xargs)
+
+if [ -z "$SCHEME_NAME" ]; then
+    print_error "Could not detect scheme from project"
+    print_info "Available schemes:"
+    xcodebuild -list -project "$PROJECT_PATH"
+    exit 1
+fi
+
 print_info "Building Traceback SwiftUI Sample"
 print_info "Device: $DEVICE_NAME"
 print_info "Project: $PROJECT_PATH"
+print_info "Scheme: $SCHEME_NAME (auto-detected)"
 echo ""
 
 # Get the device UDID

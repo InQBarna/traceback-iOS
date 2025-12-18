@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 # Xcode
 #
 # gitignore contributors: remember to update Global/Xcode.gitignore, Objective-C.gitignore & Swift.gitignore
@@ -65,3 +63,8 @@ fastlane/test_output
 
 .DS_Store
 .netrc
+
+# Firebase
+# Never commit the actual GoogleService-Info.plist with real credentials
+# The samples include a placeholder file
+samples/**/GoogleService-Info.plist
