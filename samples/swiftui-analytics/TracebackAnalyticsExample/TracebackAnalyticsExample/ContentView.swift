@@ -20,7 +20,7 @@ struct ContentView: View {
                         .padding(.top)
                     
                     // Display debug message directly in body for visibility
-                    // Text(verbatim: "Post-install link: https://traceback-samples.inqbarna.com/campaign/utm-test?utm_medium=test-medium&utm_source=test-source")
+                    // Text(verbatim: "Post-install link: https://traceback-extension-samples.web.app/campaign/utm-test?utm_medium=test-medium&utm_source=test-source")
                     Text(appState.debugMessage)
                         .font(.body)
                         .foregroundColor(.secondary)
