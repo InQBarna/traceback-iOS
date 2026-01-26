@@ -1,0 +1,26 @@
+# click_referrer_link.yaml
+# Opens the referrer site in Safari, clicks the test link, and handles the Traceback prompt
+
+appId: com.apple.mobilesafari
+---
+- launchApp
+
+# Wait for the referrer site page to load
+- extendedWaitUntil:
+    visible: "Referrer Test Site"
+    timeout: 15000
+
+# Tap on the test link (using text matching)
+- tapOn:
+    text: "Visit Campaign.*"
+
+# Wait for the Traceback "OPEN" prompt to appear
+- extendedWaitUntil:
+    visible: "OPEN"
+    timeout: 10000
+
+# Tap the OPEN button to trigger the app deep link
+- tapOn: "OPEN"
+
+# Tap OK on the confirmation dialog
+- tapOn: "OK"
