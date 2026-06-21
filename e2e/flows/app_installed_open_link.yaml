@@ -1,0 +1,13 @@
+# app_installed_open_link.yaml
+# Tests universal link opening when app is already installed
+# Expected: The app should open directly (not Safari)
+
+appId: ${BUNDLE_ID}
+---
+- launchApp
+- tapOn:
+    text: "Permitir pegar|Allow Paste"
+    optional: true
+- assertVisible:
+    text: '.*${DESTINATION_URL}'
+    index: 0

@@ -14,13 +14,13 @@ appId: com.apple.mobilesafari
 - tapOn:
     text: "Visit Campaign.*"
 
-# Wait for the Traceback "OPEN" prompt to appear
+# Wait for the Traceback "Abrir en la app" prompt to appear
 - extendedWaitUntil:
-    visible: "OPEN"
+    visible: "Abrir en la app"
     timeout: 10000
 
-# Tap the OPEN button to trigger the app deep link
-- tapOn: "OPEN"
+# Tap the button to trigger the app deep link
+- tapOn: "Abrir en la app"
 
 # Tap OK on the confirmation dialog
 - tapOn: "OK"

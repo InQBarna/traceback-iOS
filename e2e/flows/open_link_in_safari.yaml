@@ -4,7 +4,7 @@ appId: com.apple.mobilesafari
 ---
 - launchApp
 - extendedWaitUntil:
-    visible: "OPEN"
+    visible: "Abrir en la app"
     timeout: 10000
-- tapOn: "OPEN"
+- tapOn: "Abrir en la app"
 - tapOn: "OK"
