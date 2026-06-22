@@ -4,7 +4,6 @@
 
 appId: ${BUNDLE_ID}
 ---
-- launchApp
 - tapOn:
     text: "Permitir pegar|Allow Paste"
     optional: true

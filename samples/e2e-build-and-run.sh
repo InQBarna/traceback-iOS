@@ -108,9 +108,9 @@ xcodebuild build \
     -sdk iphonesimulator \
     -destination "platform=iOS Simulator,id=$DEVICE_UDID" \
     -derivedDataPath "$BUILD_DIR" \
-    CODE_SIGNING_ALLOWED=NO \
-    CODE_SIGN_IDENTITY="" \
-    CODE_SIGN_ENTITLEMENTS="" \
+    CODE_SIGN_IDENTITY="-" \
+    CODE_SIGNING_REQUIRED=NO \
+    AD_HOC_CODE_SIGNING_ALLOWED=YES \
     > "$BUILD_LOG" 2>&1
 
 BUILD_STATUS=$?
@@ -154,6 +154,3 @@ print_info "Bundle ID: $BUNDLE_ID"
 echo ""
 print_info "To launch the app, tap its icon in the simulator or run:"
 echo "  xcrun simctl launch $DEVICE_UDID $BUNDLE_ID"
-echo ""
-print_warning "Note: Universal Links don't work in Simulator!"
-print_warning "For full testing, deploy to a physical device."
